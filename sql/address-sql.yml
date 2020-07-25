@@ -1,0 +1,28 @@
+upsert-address: 
+    single: true
+    text: >
+        INSERT INTO ADDRESSES (KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS)
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        ON CONFLICT ON CONSTRAINT addresses_pkey
+        DO
+        UPDATE SET LINE1=$3,LINE2=$4,CITY=$5,ZIP=$6,TIPS=$7
+insert-address: 
+    single: true
+    text: >
+        INSERT INTO ADDRESSES (KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+
+select-all-address: 
+    text:  >
+          SELECT ID, KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS
+          FROM ADDRESSES 
+          WHERE OWNER=$1
+          
+select-address-by-kind: 
+    single: true
+    text:  >
+          SELECT ID, KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS
+          FROM ADDRESSES 
+          WHERE OWNER ilike $1 
+          AND KIND ilike $2
+

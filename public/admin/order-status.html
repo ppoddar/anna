@@ -1,0 +1,215 @@
+<html>
+<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+	<script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+	<link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+</head>
+
+<body>
+	<div class='w3-panel w3-bar main-nav-bar'>
+		<div class='w3-bar-item'>
+			<img src='../images/logo.png'>
+		</div>	
+		<h1>Orders</h1>
+	</div>
+
+	<div class='container'>
+		<div id='selection' class='container'>
+			<div id='status'></div>
+			<div id='time-range'></div>
+			<div id='refresh-display'>
+				<i class='material-icons'>refresh</i>
+			</div>
+		</div>
+		<table id='data-table'></table>
+		
+		<div id='popup' style='z-index: 2; opacity: 0.75'>
+		</div>
+	</div>
+
+	<script type="module">
+    	import OrderTable from './scripts/order-table.js'
+
+	    var STATUS_CHOICES = [
+	    	{'value': 'created',   'label': 'Created',    'style': 'text-success'},
+	    	{'value': 'confirmed', 'label': 'Confirmed',  'style': 'text-success'},
+	    	{'value': 'cancelled', 'label': 'Cancelled',  'style': 'text-danger'}
+		]
+		
+	    var TABLE_COLUMNS = [
+	    	{'label':'Id',        'width':'10%'},
+	    	{'label':'Customer',  'width':'15%'},
+	    	{'label':'Status',    'width':'10%'},
+	    	{'label':'Amount',    'width':'15%'},
+	    	{'label':'Time',      'width':'50%'}
+	    ]
+    
+		/**
+		 * creates a checkboxe for each given status choicees
+		 * @param array of choices
+		 */
+		function createStatusChoice(choices) {
+			var $row = $('<div>')
+			$row.addClass('row no-gutter')
+			let $col = $('<div>')
+			$col.addClass('col')
+			$row.append($col)
+			let $label = $('<label>')
+			$label.text('Status')
+			$col.append($label)
+			for (var i = 0; i < choices.length; i++) {
+				var choice = choices[i]
+				var $col1 = $('<div>')
+				var $col2 = $('<div>')
+				$col1.addClass('col col-1')
+				$col2.addClass('col')
+
+				$row.append([$col1,$col2])
+				var $choice = $('<input>')
+				$choice.attr('type', 'checkbox')
+				$choice.attr('name', 'status')
+				$col1.append($choice)
+
+				$label = $('<label>')
+				$label.text(choice.label)
+				$label.addClass(styleForStatus(choice.value))
+				$col2.append($label)
+			}
+			return $row
+		}
+	    
+		
+		/**
+		 * select all #selection #staus check boxes 
+		 * If 'any' is selecetd, return null
+		 */
+		function getSelectedStatusChoices() {
+			var choices = []
+			$('#selection #status input[name="status"]:checked')
+			.each(function() {
+				choices.push($(this).val().toUpperCase())
+			})
+			return choices;
+		}
+		
+		var TIME_RANGES = [
+			{'label':"30 minutes", 'value': 30},
+			{'label':"1 hour"    , 'value': 60},
+			{'label':"1 day"     , 'value': 24*60},
+			{'label':"1 week"    , 'value': 7*24*60}
+		]
+		
+		function createTimeRangeChoice(ranges) {
+			var $row = $('<div>')
+			$row.addClass('row no-gutters')
+			let $col = $('<div>')
+			$col.addClass('col')
+			$row.append($col)
+			let $label = $('<label>')
+			$label.text('When')
+			$col.append($label)
+			for (var i = 0; i < ranges.length; i++) {
+				var range = ranges[i]
+				var $col1 = $('<div>')
+				var $col2 = $('<div>')
+				$col1.addClass('col col-1')
+				$col2.addClass('col')
+				$row.append([$col1,$col2])
+
+				var $radio = $('<input>')
+				$radio.attr('id', range.id)
+				$radio.attr('type', 'radio')
+				$radio.attr('name', 'time-range')
+				$col1.append($radio)
+
+				$label = $('<label>')
+				$label.text(range.label)
+				$col2.append($label)
+			}
+			return $row
+		}
+		
+		function populateTimeRanges() {
+			TIME_RANGES.forEach(t => $('#selection #time-range')
+					.append(createTimeRangeChoice(t)))
+		}
+		/**
+		 * return time in seconds for selected time range
+		*/
+		function getTimeRange() {
+			return parseInt($('#selection #time-range input[name="time-range"]:checked').val())
+		}
+		
+		function createQuery() {
+			var query = {}
+			var statusChoices = getSelectedStatusChoices();
+			if (statusChoices && statusChoices.length > 0) {
+				query['status'] = []
+				for (var i = 0; i < statusChoices.length; i++) {
+					query['status'].push(statusChoices[i])
+				}
+			}
+			var timeRange = getTimeRange();
+			// time range is two long epoch timestamp
+			// the to value is always now (no custom range yet)
+			// the value from is subtracted from now by the
+			// selected time range
+			// query time value is in seconds, not milliseconds
+			if (timeRange) {
+				var now  = Date.now() // no of ms since epoch
+				query['time-range'] = {start: now-timeRange}
+			} 
+			
+			return {query:query}
+		}
+		
+		/**
+		 * fetches data selected by query by ajax color
+		 * and displays them in a data table
+		 */
+		function showOrdersByQuery() {
+			// collects inputs to create a query 
+			var query = createQuery()
+			console.log('created dynamic query from input')
+			console.log(query)
+			var url = '/analytics/query'
+			$.ajax({
+				url: url,
+				method: 'POST',
+				data: JSON.stringify(query),
+				contentType: 'application/json'
+			}).done(function(response) {
+				console.log(response.length + ' orders selecetd by query ' + JSON.stringify(query))
+				var $table = new OrderTable().render(response)
+				$('#data-table').empty()
+				$('#data-table').append($table)
+			}).fail(function(err) {
+				console.log(err)
+			})
+	}
+		
+	function styleForStatus(status) {
+		var s2 = String(status).toUpperCase()
+		for (var i = 0; STATUS_CHOICES.length; i++) {
+			var choice = STATUS_CHOICES[i]
+			var s1 = String(choice.value).toUpperCase()
+			if (s1 === s2) {
+				return choice.style
+			}
+		}
+	}
+	$('#refresh-display').on('click', showOrdersByQuery)
+	
+	$('#selection #status').append(createStatusChoice(STATUS_CHOICES))
+	$('#selection #time-range').append(createTimeRangeChoice(TIME_RANGES))
+
+	$('#refresh-display').trigger('click')
+	
+</script>
+</body>
+</html>
+

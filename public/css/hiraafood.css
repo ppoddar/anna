@@ -1,0 +1,276 @@
+/* ------------------------------- */
+/* CSS variables                   */
+/* --------------------------------*/
+:root {
+	--c0: #FFFFFF;
+	--c1: #008080;
+	--c2: #35B5AC;
+	--c3: #89D5D2;
+	--c4: #B5F1F1;
+	--c5: #C09591;
+	--c6: #A86561;
+	
+	--margin: 10px;
+}
+body {
+	font-size:16pt;
+	font-family: Georgia, 'Times New Roman', Times, serif;
+	height: 100%;
+}
+body.wait, body.wait *{
+    cursor: wait !important;   
+}
+*, *:before, *:after {
+  box-sizing: border-box;
+}
+
+.sticky {
+	position: fixed;
+	bottom: 40px;
+	right: 80px;
+}
+
+.action-button {
+  position:fixed;
+  bottom:10%;
+  left: 40%;
+  background-color: var(--c1);
+  color: var(--c0);
+}
+#item-browser-window {
+	position: fixed;
+	bottom: 20%;
+	left: 20%;
+	top:-40%;
+	border: 1px solid black;
+}
+
+#item-browser {
+	overflow-y: scroll;
+	height:400px;
+	top:41%;
+	left:21%;
+	bottom: 21%;
+	border: 1px solid green;
+}
+ 
+
+#menu-header {
+	background-color: var(--c2);
+	font-weight: bold;
+	color: white;
+
+}
+
+hr {
+	border-top: 1px solid black;
+	line-height: 50%;
+}
+h1, p {
+  margin: 0 0 1em 0;
+}
+
+/*
+  components of item display
+*/
+.item-details {
+	line-height:0.8em;
+}
+
+.item-name {
+	font-weight: bold;
+}
+.item-description {
+	word-wrap: break-word;
+	width: 24em;
+	font-size: 0.8em;
+}
+
+.item-category {
+	font-size: 0.8em;
+	color: grey;
+}
+
+.item-category {
+	color: grey;
+	font-size: 0.8em;
+}
+/* ----------------------------------- */
+
+
+button:focus {
+    border: none;
+    outline: none;
+}
+
+/** ------------------------------------------------------
+ * parts of modal dialog
+ * ------------------------------------------------------ */
+.modal-dialog {
+	width: 80%;
+	height: 50%;
+	margin: 0;
+	padding: 0;
+	margin-top: 10vh;
+}
+  
+.modal-content {
+	height: auto;
+	min-height: 50%;
+}
+
+.modal-header {
+	background-color: var(--c2);
+	color: var(--c0);
+}
+
+.modal-title {
+	font-weight: bold;
+	color: var(--c0);
+}
+
+.modal-body {
+	margin: 0;
+	padding-left: 0;
+	padding-right: 0;
+	padding-top:10px;
+    max-height: 50vh;
+}
+
+/* -------------------------------------------------*/
+
+.section-title {
+	background-color: var(--c1);
+	color: var(--c0);
+	border-radius: 10%;
+	text-align:center;
+	margin:auto;
+}
+
+
+
+button:disabled {
+  background: var(--c2);
+}
+
+
+
+.dialog-class {
+	font-family: Verdana,Arial,sans-serif;
+    background-color: var(--c2);
+    border-radius: 0.5em;
+}
+
+.ui-dialog .ui-dialog-titlebar {
+	padding: 1em;
+	background-color: black;
+}
+.ui-dialog .ui-dialog-title {
+	font-weight: bold;
+	font-size: 1.2em;
+	color: white;
+	text-align: center;
+}
+
+.ui-dialog .ui-dialog-titlebar-close {
+  float: right;
+}
+
+.ui-dialog .ui-dialog-content {
+	background-color: inherit;
+	padding: 2em;
+	overflow-wrap:break-word;
+	word-wrap:break-word;
+	max-width:80%;
+}
+
+
+
+
+
+#fcategory-list {
+float:left;
+}
+#item-browser {
+float:right;
+overflow-y: scroll;
+height:70%;
+}
+
+
+
+.navbar {
+	width:100%;
+	height:20%;
+	background-color: var(--c3);
+}
+
+.tab-bar {
+	background-color: var(--c2);
+}
+
+.title {
+	background-color: var(--c4) !important;
+} 
+
+table thead th {
+	background-color: var(--c4) !important;
+	font-weight: bold;
+	color: var(--c0);
+}
+
+.user-profile {
+	border-radius: 50%;
+	width: 32px;
+	height:auto;
+}
+.btn:focus, .btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.vertical-center {
+	min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+	min-height: 100vh; /* These two lines are counted as one :-)       */
+  
+	display: flex;
+	align-items: center;
+  }
+
+.address {
+	background-color: var(--c4);
+  	line-height:0.8em;
+}
+
+#footer {
+	width:100%;
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	color: white;
+	font-size:0.5em;
+	text-align: right;
+	background-color: var(--c2);
+  }
+
+  .form-control::placeholder { 
+	color: blue;
+	opacity: 0.8; 
+	font-size: 0.6em;
+  }
+
+  .form-comment {
+	color: green;
+	opacity: 0.5; 
+	font-size: 0.8em;  
+}
+
+#page-title {
+	font-size:   2em;
+	font-weight: bold;
+
+}
+
+@media (min-width: 576px) {
+	.modal-dialog { max-width: none; }
+}

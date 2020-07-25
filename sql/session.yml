@@ -1,0 +1,12 @@
+select-sessions:
+    text: SELECT ID,USER_FK AS USER,CREATED FROM SESSIONS
+
+save-session:
+    text: >
+        INSERT INTO SESSIONS (ID,USER_FK,CREATED) VALUES ($1,$2,NOW())
+        ON CONFLICT ON CONSTRAINT sessions_user_fk_key
+        DO UPDATE SET ID=$1,CREATED=NOW()
+
+
+update-session:
+    text: UPDATE SESSIONS SET ID=$1 WHERE USER_FK=$2

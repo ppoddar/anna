@@ -1,0 +1,36 @@
+find-invoice: 
+    single: true
+    description: 
+    text: >
+      SELECT i.id, o.user_id as user, i.payorder, i.status, i.created, i.amount
+      FROM INVOICES i LEFT JOIN ORDERS o
+      ON i.ID = o.ID
+      WHERE i.ID = $1
+
+
+update-invoice-amount:  
+    text: > 
+        UPDATE INVOICES SET PAYORDER=$2, AMOUNT=$3::FLOAT
+        WHERE ID= $1
+update-invoice-status:  
+    text: > 
+        UPDATE INVOICES SET STATUS=$2
+        WHERE ID= $1 
+
+select-invoice-items: 
+    text: >
+      SELECT invoice_fk as invoice, id, kind, description, amount 
+      FROM INVOICE_ITEMS
+      WHERE INVOICE_FK=$1 
+
+insert-invoice:  
+    text: > 
+        INSERT INTO INVOICES 
+        (ID, CREATED, STATUS, BILLING_ADDRESS, DELIVERY_ADDRESS) 
+        VALUES ($1, NOW(), 'CREATED', $2, $3) 
+
+insert-invoice-item:  
+  text: >
+      INSERT INTO INVOICE_ITEMS 
+      (INVOICE_FK,  ID,  KIND, SKU, DESCRIPTION, AMOUNT)
+      VALUES ($1,  $2,  $3, $4, $5, $6::FLOAT)

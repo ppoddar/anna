@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hiraafood</title>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+  	
+  
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../css/hiraafood.css">
+  
+    <script>
+    $().ready(function() {
+        $('body').fadeIn(100)
+    })
+    </script>
+  </head>
+
+<body style='display:none'>
+	<div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
+
+  <div id='menu' class='container-fluid mt-2'>
+    <div class='row no-gutters'>
+      <div id='category-column' class='col col-4'>
+        <ul id='category-list' class="list-unstyled m-auto"></ul>
+        <hr class='solid'/>
+        <p class='text-primary font-weight-bold'>Your order</p>
+        <div id='cart'></div>
+        <hr class='solid'/>
+        <button id='checkout' class='btn btn-primary round'>Checkout</button>
+      </div>
+      <div class='col col-8 mh-75' style="overflow-y: scroll;">
+        <div id='category-items'></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div id='footer'>&copy; HiraaFood 2020-30</div>
+
+
+</div>
+
+<script type="module">
+  import Application  from '../../scripts/app.js'
+  import Action       from '../../scripts/action.js'
+  import Navbar       from '../../scripts/widgets/navbar.js'
+  import Menu         from '../../scripts/widgets/menu.js'
+
+  $('body').css('cursor', 'wait')
+  let $navbar = new Navbar('Order')
+  $navbar.addDropdownItem({label:'clear cart', action: clearCart})
+  $navbar.addDropdownItem({label:'settings'})
+
+  $('#navbar').append($navbar.render())
+
+  new Menu().fetchItemCatalog($('#menu'))
+  //let cart = Application.getCart()
+  //$('#cart').append(cart.render())
+  //$('#checkout').attr('disabled', cart.isEmpty())
+  $('#checkout').on('click', () => {
+      Action.createOrder(Application.getCart().items, 
+        (response) => {
+        console.log('saving order from checkout response ')
+        console.log(JSON.stringify(response))
+        Application.saveOrder(response)
+        window.location = './delivery.html'
+      })
+  })
+
+  // refreshes cart area with latest state of cart
+  $('#cart').on('click', function(){
+    let cart = Application.getCart()
+    $(this).empty()
+    $(this).append(cart.render())
+    $('#checkout').attr('disabled', cart.isEmpty())
+  })
+
+  $('#cart').trigger('click')
+  $('body').css('cursor', 'default')
+
+
+  function clearCart() {
+    let cart = Application.getCart()
+    cart.clear()
+  }
+</script>
+
+</body>
+</html>

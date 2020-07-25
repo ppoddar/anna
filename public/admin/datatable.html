@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.js"></script>
+    
+    <link rel="stylesheet"	href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+</head>
+
+<body>
+    <div id='main'></div>
+<script type="module">
+    import OrderTable from './scripts/order-table.js'
+    var data = [
+        {id:'A1', user:'Pinaki', created:'', status:'CREATED', amount: 100}
+    ]
+    
+    var $table = new OrderTable().render(data)
+    $('#main').append($table)
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+find-order:
+    single: true
+    description: joins with invoices for amount
+    text: >
+      SELECT id, user_id as user, created,  time_offset,  status, total  
+      FROM ORDERS 
+      WHERE ID=$1
+
+insert-order:  
+    single: true
+    text: > 
+        INSERT INTO ORDERS (USER_ID, CREATED, TIME_OFFSET, STATUS) 
+        VALUES ($1, NOW(), extract(TIMEZONE FROM NOW()), 'CREATED') 
+        RETURNING ID,USER_ID, CREATED, TIME_OFFSET, STATUS
+update-order-total: 
+    text: >
+        UPDATE ORDERS SET TOTAL=$1::FLOAT
+        WHERE ID = $2
+
+select-order-items: 
+    text:  >
+          SELECT sku, name, price, units, comment 
+          FROM ORDER_ITEMS 
+          WHERE ORDER_FK=$1
+
+update-order-item: 
+    text: >
+          UPDATE ORDER_ITEMS 
+          SET units=$1::INTEGER, price=$2::FLOAT, COMMENT=$3
+          WHERE ORDER_FK=$4 and SKU=$5
+
+update-order-status: 
+    text: >
+          UPDATE ORDERS
+          SET status=$1
+          WHERE ID=$2
+
+delete-order-item: 
+    text: DELETE ORDER_ITEMS 
+          WHERE ORDER_FK=$1 and SKU=$2 
+          
+insert-order-item:  
+  text: >
+      INSERT INTO ORDER_ITEMS 
+      (ORDER_FK,  SKU, NAME, PRICE, UNITS, COMMENT)
+      VALUES ($1,  $2,  $3, $4::FLOAT, $5::INTEGER, $6)
+
+
+select-all-orders: 
+    description: >
+        select all orders. The orders are joined with inventory to get amount
+    text: >
+      SELECT o.id, o.user_id as user, o.created,  o.time_offset,  o.status, i.amount  
+      FROM ORDERS o LEFT JOIN INVOICES i
+      ON o.ID = i.ID
+      
+select-order-by-status: 
+    description: >
+        select order of specific status. The orders are joined with inventory to get amount
+    text: >
+      SELECT o.id, o.user_id as user, o.created,  o.time_offset,  o.status, i.amount  
+      FROM ORDERS o LEFT JOIN INVOICES i
+      ON o.ID = i.ID
+      WHERE o.status = $1
+
+select-ordres-by-timerange-and-status: 
+    text: >
+        SELECT ID FROM ORDERS 
+        WHERE CREATED BETWEEN $1 AND $2
+        AND STATUS=$3
+
+record-order-event: 
+    text: >
+        INSERT INTO ORDER_EVENTS (ORDER_FK, WHAT, T)
+        VALUES ($1, $2, NOW())
+
+select-order-history: 
+    text: >
+        SELECT (ORDER_FK, WHAT, T) FROM ORDER_EVENTS
+        WHERE ORDER_FK=$1
+        ORDER BY T 

@@ -1,0 +1,39 @@
+
+find-user: 
+    single: true 
+    text: >
+        SELECT u.ID, u.NAME, u.PHONE, u.EMAIL, 
+        (SELECT array_to_string(array_agg(ur.role_fk),',')
+            FROM USER_ROLES ur 
+            WHERE ur.user_fk = u.id) as ROLES,
+        p.HOMEPAGE as home
+        FROM USERS u 
+        LEFT JOIN USER_HOMEPAGES p 
+        ON u.id = p.user_fk
+        WHERE u.id = $1 
+        
+  
+
+authenticate-user:  
+    single: true 
+    text : >
+        SELECT ID, NAME, PHONE, EMAIL 
+        FROM USERS 
+        WHERE ID=$1 AND PASSWORD = crypt($2,  password) 
+
+insert-user:  
+    text: >
+        INSERT INTO USERS 
+        (ID, NAME, EMAIL,  PHONE,  PASSWORD)
+        VALUES ($1, $2, $3, $4,  crypt($5,  gen_salt( 'bf' ))) 
+insert-user-role:  
+    text: >
+        INSERT INTO USER_ROLES 
+        (USER_FK, ROLE_FK)
+        VALUES ($1, $2) 
+
+insert-user-page: 
+    text: >
+        INSERT INTO USER_HOMEPAGES
+        (USER_FK, HOMEPAGE) 
+        VALUES ($1, $2)

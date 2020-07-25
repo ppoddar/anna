@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hiraafood Login</title>
+<script	src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/razorpay.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet"	href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="./css/hiraafood.css">
+
+</head>
+<body>
+	<div id='signup-dialog' class='modal' role='dialog'>
+		<div class='modal-dialog' role='document'>
+			<div class='modal-content'>
+				<div class='modal-header'>
+					<h3 class='modal-title'>Register</h3>
+					<img src='./images/logo.png'>
+				</div>
+				<div class='modal-body'>
+					<form id='signup-form' class='m-1 needs-validation' novalidate>
+						<div class="form-group row">
+							<label for="username"
+								class="col-sm-4 col-form-label col-form-label-sm">
+								user name</label>
+							<div class="col-sm-8">
+								<input type="text" class="form-control form-control-sm"
+									id="username" placeholder="user name">
+								<div id='invalid-username' 
+							  	  class='invalid-feedback'></div>
+							</div>
+						</div>
+
+						<div class="form-group row">
+							<label for="password"
+								class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">password</label>
+							<div class="col-sm-8">
+								<input type="password" class="form-control form-control-sm"
+									id="password" placeholder="password">
+								<div id='invalid-password' 
+							  	  class='invalid-feedback'></div>
+							</div>
+						</div>
+						<div class="form-group row">
+							<label for="password-retype"
+								class="col-sm-4 col-form-label col-form-label-sm font-weight-bold">password agin</label>
+							<div class="col-sm-8">
+								<input type="password" class="form-control form-control-sm"
+									id="password-retype" placeholder="password again">
+								<div id='invalid-password-retype' 
+							  	  class='invalid-feedback'></div>
+							</div>
+						</div>
+					</form>
+				</div>
+				<div class='modal-footer'>
+					<button id='signup'
+						  class="btn btn-primary">sign up</button>
+					<button id='cancel'
+					       class="btn btn-secondary"
+						data-dismiss="modal">cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<script type='module'>
+		import Application from './scripts/app.js'
+		import User from './scripts/user.js'
+		import Alert from './scripts/alert.js'
+		
+		$('#signup-dialog').modal('toggle')
+		$('#username').focus()
+
+
+	    
+
+	    
+
+		
+		
+		
+		/**
+         * mark given element as invalid.
+		 * write error text in second element 
+		*/
+		function invalidate($el, $el2, msg) {
+			$el.addClass('is-invalid')
+			$el2.text(msg)
+			$el2.show()
+		}
+		function clearFormError() {
+			$('#username').removeClass('.is-invalid')
+			$('#password').removeClass('.is-invalid')
+			$('.invalid-feedback').hide()
+		}
+		function loginSuccess(session, guest) {
+			window.location = 'app.html'
+
+		}
+		function loginFailure(err) {
+			console.log('login failure')
+			console.log(err)
+			User.clearUser()
+			new Alert({
+				title:'Login error', 
+				message: err.responseJSON.message, 
+				type: 'error',
+				target: './login.html'
+			})
+		}
+	</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html5>
+
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hiraafood</title>
+   
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+  	<script src="https://checkout.razorpay.com/v1/razorpay.js"></script>
+  	<script src="https://checkout.razorpay.com/v1/checkout.js"></script>  	
+  
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../css/hiraafood.css">
+<script>
+    $().ready(function() {
+      $('body').fadeIn(100)
+    })
+      
+</script>
+
+</head>
+
+<body style='display:none'>
+    <div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
+    <div id='bill' class='container-fluid'>
+        <div class='text-center'><h5>Bill <span id='invoice-number'></span></h5></div>
+        <hr class="solid">
+        <div id='invoice-items'></div>
+        <hr class="solid">
+        <div class='d-flex flex-row no-gutters'>
+          <div class='col flex-grow-1'><b>Total</b></div>
+          <div id='invoice-total' class='col text-right'></div>
+        </div>
+        <hr class="solid">
+    </div>
+
+    <div class='text-center'>
+      <button id='pay' class='btn btn-primary' disabled>Pay</button>
+    </div>
+
+
+    <script type="module">
+        import Action       from '../../scripts/action.js'
+        import Application  from '../../scripts/app.js'
+        import PaymentGateway from '../../scripts/widgets/payment-gateway.js'
+        import Invoice      from '../../scripts/model/invoice.js'
+        import Navbar       from '../../scripts/widgets/navbar.js'
+
+
+        $('#navbar').append(new Navbar('Payment').render())
+        let order = Application.getOrder()
+        Action.createInvoice(order,
+            Application.getBillingAddress(),
+            Application.getDeliveryAddress(), (response) => {
+                const invoice = new Invoice(response)
+                Application.saveInvoice(invoice)
+                $('#bill').append(invoice.render())
+                $('#pay').attr('disabled', false)
+                let customer = Application.getUser(true)
+                $('#pay').on('click', () => new PaymentGateway()
+                    .pay(invoice, customer, function(data){
+                      console.log('razor payment successful')
+			                console.log(data)
+			                window.location = './thank-you.html'
+                }))
+            })
+    </script>
+</body>
+
+</html>

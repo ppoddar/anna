@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--            successful payment from RazorPay gateway -->
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hiraafood</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../css/hiraafood.css">
+<script>
+    $().ready(function(){
+        history.pushState(null, document.title, location.href)
+        window.addEventListener('popstate', function() {
+            history.pushState(null, document.title, location.href)
+        })
+    })
+
+
+</script>
+    
+</head>
+
+<body>
+    <div id='navbar' class='navbar navbar-static-top navbar-dark'>
+        <img id='home' src='/images/logo.png'>
+        <label id='page-title'>Thank you</label>
+        <div class='material-icons'>menu</div>
+    </div>
+
+    <div class='card mx-auto text-center' style='width:20em;min-height:25vh'>
+        <div class='card-header bg-primary text-white mt-25'>Payment success</div>
+        <div class='card-body'>
+            payment of <span id='amount'></span>
+            for your order <span></span> is successful
+        </div>
+        <button id='print-bill' class='btn btn-primary'>Print receipt</button>
+
+    </div>
+    
+    <script type="module">
+        import Application  from '../../scripts/app.js' 
+        import Amount       from '../../scripts/widgets/amount.js'
+        // pre-condition: invoice has been saved by a previous page
+        let invoice = Application.getInvoice()
+        $('#amount').append(new Amount(invoice.amount).render())
+        $('#order').text(invoice.id)
+
+        $('#print-bill').on('click', () => {
+            window.location = './print-bill.html'
+        })
+    </script>
+</body>
+</html>

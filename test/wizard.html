@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hiraafood Login</title>
+<script	src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/razorpay.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="../css/hiraafood.css">
+
+</head>
+<body>
+	
+<script type='module'>
+	import Wizard      from '../scripts/forms/wizard.js'
+	import SignupForm  from '../scripts/forms/signup-form.js'
+	import AddressForm from '../scripts/forms/address-form.js'
+	
+	var wizard = new Wizard({title:'WIZARD'}, [new SignupForm(), new AddressForm()])
+	wizard.open()
+	
+</script>
+</body>
+</html>
