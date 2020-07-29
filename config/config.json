@@ -1,0 +1,6 @@
+{
+  "security":{
+      "key": "security/hiraafood.com.key",
+      "cert": "security/hiraafood.com.crt"
+    }
+}

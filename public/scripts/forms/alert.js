@@ -6,19 +6,18 @@ class Alert {
 		this.title = title
 		this.message = msg
 		this.modal = this.createModal()
-
-
 	}
 	open() {
 		this.modal.modal('show') 
 	}
+	/*
+	 * closes this alert box.
+	 * The origina form was showm when alert box was closed.
+	 */
 	close() {
         if (!this.modal) return
         this.modal.modal('dispose')
         this.modal.remove()
-        $('.modal-backdrop').remove();
-        $('.modal').remove();
-        $( 'body' ).removeClass( "modal-open" );
     }
 	createModal() {
         if (this.modal) return this.modal

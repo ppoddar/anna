@@ -18,7 +18,7 @@ class LoginDialog extends BasicDialog {
             action: () => {
                 var inputs = this.form.collectInputs()
                 Action.login(inputs.username, inputs.password, (err,response) => {
-                    if (err) this.handleServerResponse('login', err)
+                    if (err) this.handleError('login', err)
                     else this.handleServerResponse('login', response)
             })}
         }),
@@ -26,7 +26,7 @@ class LoginDialog extends BasicDialog {
             {label: 'login as guest', 
             type:'secondary', 
             action: ()=> { Action.loginAsGuest((err,response)=>{
-                if (err) this.handleServerResponse('loginAsGuest', err)
+                if (err) this.handleError('loginAsGuest', err)
                 else this.handleServerResponse('loginAsGuest', response)
             })}
         }),
@@ -51,12 +51,12 @@ class LoginDialog extends BasicDialog {
 		Application.open()
     }
 
-    handleServerError(req, error) {
+    handleError(req, error) {
         console.log(`${req} server error`)
         console.log(error)
         Application.clearUser()
-        this.close()
-        new Alert('Login Error', response.responseJSON.message).open()
+        //this.close()
+        new Alert('Login Error', error.responseJSON.message).open()
     }
 }
 export default LoginDialog

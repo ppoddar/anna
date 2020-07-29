@@ -4,6 +4,7 @@ const path       = require('path')
 const fs         = require('fs')
 const yaml       = require('js-yaml')
 const assert     = require('assert')
+const { type } = require('os')
 
 class Database {
     constructor(options) {
@@ -12,16 +13,14 @@ class Database {
         console.log(`connecting to database [${this.url}] `)  
         this.pool = new Pool(options)
         this.sqls = {}
-        var parseInteger = function(val) {
-            return val == undefined ? 0 : parseInt(val)
-        }
-        var parseFloat = function(val) {
-            return val == undefined ? 0 : parseFloat(val)
-        }
-        types.setTypeParser(types.builtins.INT2, parseInteger)
-        types.setTypeParser(types.builtins.INT4, parseInteger)
-        types.setTypeParser(types.builtins.FLOAT4, parseFloat)
-         
+        this.readQueriesFromDir(options.sqldir)
+
+        types.setTypeParser(types.builtins.NUMERIC, function(val){
+            let r = parseFloat(val)
+            return r
+        })
+        
+
     }
     /**
      * begins transaction.
@@ -96,8 +95,8 @@ class Database {
                 if (result.rowCount == 1) {
                     return result.rows[0]
                 } else {
-                    let msg = `${name} returned ${result.rowCount} rows`
-                    throw new Error(msg)
+                    console.warn(`${name} returned ${result.rowCount} rows. Expected 1. Returning null`)
+                    return null
                 }
             } else {
                 return  result.rows
@@ -141,8 +140,7 @@ class Database {
             let q = this.readQueriesFromFile(f)
             Object.assign(queries, q)
         }
-        console.debug(`in total read ${Object.keys(queries).length} queries from ${files.length} files`)
-        //return queries
+        console.debug(`read ${Object.keys(queries).length} queries from ${files.length} files in [${dir}] directory`)
         this.sqls = queries
     }
 
@@ -168,7 +166,7 @@ class Database {
         } catch (e) {
             console.error(e);
         }
-        console.debug(`read ${Object.keys(queries).length} queries from ${path.basename(file)}`)
+        //console.debug(`read ${Object.keys(queries).length} queries from ${path.basename(file)}`)
         return queries
     }
 

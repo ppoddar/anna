@@ -2,36 +2,56 @@ const {MinimumLengthRule, CharacterTypeRule,
     MinimumCharacterTypeCountRule, MaximumCharacterTypeCountRule,
     StringCharacterTypeRule} 
 = require('./validation-rule')
+const CharacterType = require('./char-type')
+const BaseController = require('./base-controller')
+const express         = require('express')
+const httpStatus = require('http-status-codes')
 
-class ValidationService {
-    constructor(){
-
+class ValidationService extends BaseController {
+    constructor() {
+        super()
+        this.app = express()
+        this.app.post('/user',      this.validateUsername.bind(this))
+        this.app.post('/password',  this.validatePassword.bind(this))
     }
-    validateUsername(username)  {
-        //console.log(`validate user name [${username}]`)
-        //console.log(`request argument received is of type ${username.constructor.name}`)
 
+    
+    async validateUsername(req,res,next)  {
+        const username = this.postBody(req,res).value
         var rules = [
             new MinimumLengthRule(5), 
-            new CharacterTypeRule(0, CHARACTER_TYPES.lowercase_letter),
-            new MaximumCharacterTypeCountRule(0, 'special')
+            new CharacterTypeRule(0, CharacterType.LOWERCASE),
+            new MaximumCharacterTypeCountRule(0, CharacterType.SPECIAL),
+            new MaximumCharacterTypeCountRule(0, CharacterType.UNKNOWN),
+            
         ]
-        // invalid rule will throw exception
+        // exception if any rule fails
         for (var i = 0; i < rules.length; i++) {
-            rules[i].apply(username)
+            try {
+                rules[i].apply(username)
+            } catch (e) {
+                next(e)
+            }
         }
+        res.status(httpStatus.OK).end()
     }
 
 
-    validatePassword(pwd) {
+    async validatePassword(req,res,next) {
+        const pwn = this.postBody(req,res).value
         var rules = [
             new MinimumLengthRule(5), 
-            new MinimumCharacterTypeCountRule(1, 'digit')
+            new MinimumCharacterTypeCountRule(1, CharacterType.DIGIT)
         ]
-         // invalid rule will throw exception
          for (var i = 0; i < rules.length; i++) {
-            rules[i].apply(pwd)
+             try {
+                rules[i].apply(pwd)
+             } catch (e) {
+                 next(e)
+             }
         }
+        res.status(httpStatus.OK).end()
+
     }
 }
 module.exports = ValidationService

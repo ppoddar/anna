@@ -1,9 +1,16 @@
-
-class OrderService {
+const exppress = require('express')
+const httpStatus = require('http-status-codes')
+const BaseController = require('./base-controller')
+class OrderService extends BaseController{
 
     constructor(database) {
+        super()
         this.db = database
+        this.app = exppress()
+
+        this.app.post('/', this.createOrder.bind(this))
     }
+
     /**
      * create an order for given user and with given lineitems.
      * Order is assigned an automatic id by the database.
@@ -15,39 +22,60 @@ class OrderService {
      * 
      * @returns an order with its lineitems
      */
-    async createOrder(itemService, uid, lineitems) {
-        console.debug(`createOrder  uid=${uid}`)
-        let txn    = await this.db.begin()
-        let result = await this.db.executeSQL('insert-order', [uid])
-        let order  = {id:result['id'].toString(), user: result['user_id'],
-            created: result['created'], time_offset: result['time_offset'],
-            status : result['status']}
-        console.debug(`database order create returned [${JSON.stringify(order)}]`)
-
-        order['items'] = []
-        let total = 0
-        // lineitem is item.sku, units, comment
-        for (var i =0; i < lineitems.length; i++) {
-            let e    = lineitems[i]
-            let item = await itemService.findItem(e.sku)
-            let price = item.price * e.units
-            total += price
-            let li = {sku:e.sku, 
-                name: item.name,
-                price: price,
-                units:e.units,
-                comment:e.comment}
-            order['items'].push (li) 
-            await this.db.executeSQLInTxn(txn, 'insert-order-item', 
-                [order.id, li.sku, li.name, li.price, li.units, li.comment])
-
-        }
-        order.total = total
-        await this.db.executeSQLInTxn(txn, 'update-order-total', [total, order.id])
-        await this.db.commit(txn)
-
-        return order
+    async createOrder(req,res,next) {
+        
+            var lineitems = this.postBody(req, res, true)
+            var uid   = this.queryParam(req, res, 'uid')
+            //console.debug(`createOrder  uid=${uid}`)
+            let txn    = await this.db.begin()
+            let result = await this.db.executeSQL('insert-order', [uid])
+            let order  = {id:result['id'].toString(), user: result['user_id'],
+                created: result['created'], time_offset: result['time_offset'],
+                status : result['status']}
+            console.debug(`database order create returned [${JSON.stringify(order)}]`)
+            order['items'] = []
+            let total = 0
+            for (var i = 0; i < lineitems.length; i++) {
+                let e    = lineitems[i]
+                let item = await this.itemService.findItem(e.sku)
+                let price = item.price * e.units
+                total += price
+                let li = {sku:e.sku, name: item.name,
+                    price: price,
+                    units: e.units,
+                    comment:e.comment
+                }
+                order['items'].push (li) 
+                await this.db.executeSQLInTxn(txn, 'insert-order-item', 
+                    [order.id, li.sku, li.name, li.price, li.units, li.comment])
+            }
+            order.total = total
+            await this.db.executeSQLInTxn(txn, 'update-order-total', [total, order.id])
+            await this.db.commit(txn)
+        
+            res.status(httpStatus.OK).json(order)
     }
+
+    async createInvoice(req,res,next) {
+        try {
+            const uid = this.queryParam(req, 'uid')
+            const oid = this.queryParam(req, 'oid') 
+            const address_kind = this.queryParam(req, 'address_kind')
+            const order = await this.orderService.findOrder(oid)
+            const billingAddress_id  = await this.userService.getAddress(uid, 'billing').id
+            const deliveryAddress_id = await this.userService.getAddress(uid, address_kind).id
+            const invoice = await this.paymentService.createInvoice(
+                this.pricingService,
+                order,
+                billingAddress_id,deliveryAddress_id)
+
+            res.status(httpStatus.OK).json(invoice)
+        } catch(e) {
+            next(e)
+        }
+    }
+
+    
 
  
     async changeOrderStatus(oid, status) {

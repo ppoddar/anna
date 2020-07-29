@@ -1,22 +1,93 @@
+const express = require('express')
+const httpStatus = require('http-status-codes')
 const SessionCache = require('./session-cache')
+const BaseController = require('./base-controller')
+const AuthenticationError = require('./errors').AuthenticationError
 
 
-
-class UserService {
+class UserService extends BaseController {
     constructor(db) {
+        super()
         this.db = db
-            //SessionCache.getSessionsFromDB(db)
+        //SessionCache.getSessionsFromDB(db)
+        this.app = express()
+        this.app.post('/create', this.createUser.bind(this))
+        this.app.post('/login', this.login.bind(this))
+        this.app.post('/loginAsGuest', this.loginAsGuest.bind(this))
+        this.app.post('/relogin', this.relogin.bind(this))
+        this.app.get('/address', this.getAddress.bind(this))
+        this.app.get('/addresses', this.getAddresses.bind(this))
+        this.app.post('/address', this.createAddress.bind(this))
     }
 
-    /**
-     * gets an user by given id in database
-     * @param {string} id 
-     * @return an user or null
-     */
-    async findUser(id) {
-        return await this.db.query('find-user', [id])
+    async login(req, res, next) {
+        try {
+            const creds = this.extractAuthrozationHeader(req, res)
+            const uid = creds.username
+            const pwd = creds.password
+            let user = await this.db.executeSQL('find-user', [uid])
+            if (!user) {
+                throw new AuthenticationError('user-not-found', [uid])
+            }
+            user.roles = user.roles.split(',')
+            let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
+            if (!row) {
+                throw new AuthenticationError('wrong-password', [uid] )
+            }
+            let session = SessionCache.findSessionForUser(user.id)
+            if (session) {
+                console.info(`session [${session.id}] exists for user [${user.id}]`)
+            } else {
+                console.info(`creting new session for user [${user.id}]`)
+                session = await SessionCache.createSession(user, this.db)
+                console.log('new session ${session}')
+            }
+            res.status(httpStatus.OK).json(session)
+        } catch (e) {
+            next(e)
+        }
     }
-    
+    async relogin(req, res, next) {
+        try {
+            let authToken = req.headers['x-auth-token']
+            let session = await this.findSession(authToken)
+            if (!session) {
+                throw new AuthenticationError('no-seesion', [authToken])
+            }
+            res.status(httpStatus.OK).json(session)
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async loginAsGuest(req, res, next) {
+        try {
+            let user = { id: 'guest', page: 'customer' }
+            let session = SessionCache.findSessionForUser(user.id)
+            if (session) {
+                console.info(`session [${session.id}] exists for user [${user.id}]`)
+            } else {
+                console.info(`creting new session for user [${user.id}]`)
+                session = await SessionCache.createSession(user, this.db)
+            }
+            res.status(httpStatus.OK).json(session)
+        } catch (e) {
+            next(e)
+        }
+    }
+
+
+    extractAuthrozationHeader(req, res) {
+        if (!req.headers.authorization) {
+            res.status(httpStatus.BAD_REQUEST).json({ message: `no authorization header in ${req.url}` })
+            res.end()
+        }
+        let auth = req.headers.authorization.replace('Basic', '').trim()
+        var decoded = Buffer.from(auth, 'base64').toString('ascii')
+        let tokens = decoded.split(':')
+        return { username: tokens[0], password: tokens[1] }
+    }
+
     /**
      * create an user
      * TODO:
@@ -36,14 +107,14 @@ class UserService {
             if (!page) page = user.roles[0]
             await this.db.executeSQLInTxn(txn, 'insert-user-role', [user.id, user.roles[i]])
         }
-        await this.db.executeSQLInTxn(txn, 'insert-user-page', [user.id, page] )
+        await this.db.executeSQLInTxn(txn, 'insert-user-page', [user.id, page])
         this.db.commit(txn)
 
         delete user['password']
 
         return user
     }
-    
+
     // --------------------------------------------------------------------------
     /**
      * adds an address for given user.
@@ -51,81 +122,44 @@ class UserService {
      * @param {} user 
      * @param {*} addr an address
      */
-    async addAddress(user, addr) {
-        let params = [addr.kind, user.id, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
-        await this.db.executeSQL('insert-address', params)
-        return addr   
+    async createAddress(req, res, next) {
+        try {
+            const uid = this.queryParam(req, res, 'uid')
+            const addr = this.postBody(req, res)
+            let params = [addr.kind, uid, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
+            const address = await this.db.executeSQL('insert-address', params)
+            res.status(httpStatus.OK).json(address)
+        } catch (e) {
+            next(e)
+        }
     }
     /**
      * get all addresses 
      * @returns set of addresses indexed by kind for given user identifier
      */
-    async getAddresses(user) {
-        let rs = await this.db.executeSQL('select-all-address', [user])
-        var addresses = []
-        //console.log(`got ${rs.length} rows`)
-        for (var i = 0; i < rs.length; i++) {
-            let address = rs[i]
-            //console.log(`address[${i}]=${address}`)
-            addresses.push(address)
+    async getAddresses(req, res, next) {
+        try {
+            const user = this.queryParam(req, res, 'uid')
+            let rs = await this.db.executeSQL('select-all-address', [user])
+            var addresses = []
+            //console.log(`got ${rs.length} rows`)
+            for (var i = 0; i < rs.length; i++) {
+                const address = rs[i]
+                //console.log(`address[${i}]=${address}`)
+                addresses.push(address)
+            }
+            //console.log(addresses)
+            res.status(httpStatus.OK).json(addresses)
+        } catch (e) {
+            next(e)
         }
-        //console.log(addresses)
-        return addresses
-    }
-    async getAddress(user, kind) {
-        return await this.db.executeSQL('select-address-by-kind', [user, kind])
-    }
-
-    /**
-     * logs in a user with given credentials
-     * 
-     * @param {*} creds 
-     */
-    async login(uid, pwd) {
-        let  user = await this.db.executeSQL('find-user', [uid])
-        if (!user) throw new Error(`user ${uid} not found`)
-
-        //console.log(`database query returns user ${user.id} with ${user.roles}
-        //of type ${user.roles.constructor.name}`)
-        user.roles = user.roles.split(',')
-        //console.log(`after split roles are ${user.roles} of type  ${user.roles.constructor.name}`)
-
-        let row = await this.db.executeSQL('authenticate-user', [uid,pwd])
-        if (!row) {
-            throw new Error(`password for user [${uid}] does not match`)
-        } 
-
-        let session = SessionCache.findSessionForUser(user.id)
-        if (session) {
-            console.info(`session [${session.id}] exists for user [${user.id}]`)
-        } else {
-            console.info(`creting new session for user [${user.id}]`)
-            session = await SessionCache.createSession(user, this.db)
-            console.log('new session ${session}')
-        }
-        
-        return session
     }
 
-    async loginAsGuest() {
-        let user = {id:'guest', page:'customer'}
-        let session = SessionCache.findSessionForUser(user.id)
-        if (session) {
-            console.info(`session [${session.id}] exists for user [${user.id}]`)
-        } else {
-            console.info(`creting new session for user [${user.id}]`)
-            session = await SessionCache.createSession(user, this.db)
-        }
-        
-        return session
-    }
-
-    async relogin(authToken) {
-        let session = await this.findSession(authToken)
-        if (!session) {
-            throw  new Error(`no session for authorization token ${authToken}`)
-        }
-        return session
+    async getAddress(req, res, next) {
+        const user = this.queryParam(req, res, 'uid')
+        const kind = this.queryParam(req, res, 'kind')
+        const address = await this.db.executeSQL('select-address-by-kind', [user, kind])
+        res.status(httpStatus.OK).json(address)
     }
 
 
@@ -154,5 +188,7 @@ class UserService {
     getSessions() {
         return SessionCache.getSessions()
     }
+
+
 }
 module.exports = UserService

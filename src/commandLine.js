@@ -1,5 +1,4 @@
 var fs     = require('fs')
-var path   = require('path');
 const yaml = require('js-yaml')
 
 /**
@@ -19,16 +18,22 @@ class CommandLine {
     constructor() {
         this.options = {}
         let args = process.argv.slice(2)
-        for (var i = 0; i < args.length-1; i+=2) {
+        for (var i = 0; i < args.length; i++) {
             let option = args[i]
-            this.options[option] = args[i+1]
-        }    
+            if (this.isFlag(option)) {
+                if (i < args.length-1 && !this.isFlag(args[i+1])) {
+                    this.options[option] = args[i+1]
+                } else {
+                    this.options[option] = option
+                }
+            }
+        } 
     }
-    /*
-     * Gets YAML configuration as a dictionary.
-     * @parm the command line option that specifes the YAML file
-     * Typically -c 
-     */
+
+    isFlag(s) {
+        return s.startsWith('-')
+    }
+
     getConfig(opt, def) {
         let configFileName = this.getCommandLineOption(opt, "")
         if (configFileName == "") configFileName = def
@@ -39,7 +44,12 @@ class CommandLine {
     readConfigFile(fname) {
         try {
             let fileContent = fs.readFileSync(fname, 'utf8');
-            var data =  yaml.safeLoad(fileContent)
+            var data
+            if (fname.endsWith('.yml')) {
+                data =  yaml.safeLoad(fileContent)
+            } else {
+                data =  JSON.parse(fileContent)
+            }
             return data
         } catch (err) {
             throw err
@@ -51,10 +61,18 @@ class CommandLine {
             return this.options[opt]
         }
         if (def == undefined) {
-            let msg = `neither command-line option [${opt}], nor a default value provided. command line options ${Object.keys(this.args)}`
-            throw msg
+            let msg = `neither command-line option [${opt}], nor a default value provided. command line options ${Object.keys(this.options)}`
+            throw new Error(msg)
         }
         return def
+    }
+
+    isPresent(flag) {
+        if (flag in this.options) {
+            return flag in this.options
+        } else {
+            return false
+        }
     }
 }
 

@@ -11,6 +11,8 @@ insert-address:
     text: >
         INSERT INTO ADDRESSES (KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING ID,KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS
+
 
 select-all-address: 
     text:  >

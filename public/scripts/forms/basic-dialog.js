@@ -194,8 +194,8 @@ class BasicDialog {
             //console.log(`button [${_this.text()}]  clicked` )
             self.form.validate((error, valid)=> {
                 //console.log(`${this.constructor.name} has received final validation response ${JSON.stringify(message)}`)
-                if (valid) { // call with form inputs
-                    props.action.call(null, self.form.collectInputs())
+                if (valid) { // call action associated with the button
+                    props.action.call(null)
                 } // else form will show invalidation error messages
             })
  

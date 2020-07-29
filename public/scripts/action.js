@@ -123,8 +123,10 @@ class Action {
 			method: 'POST',
 			headers: header
 		}).success(function(data) {
+			console.log(`success /user/login ${data}`)
 			cb.call(null, null, data)
 		}).fail(function(err) {
+			console.log(`failure /user/login ${err}`)
 			cb.call(null, err, null)	
 		}).always(function(response){
 			$("body").css("cursor", "default");
