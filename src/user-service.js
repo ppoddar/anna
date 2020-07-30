@@ -1,18 +1,15 @@
-const express = require('express')
 const httpStatus = require('http-status-codes')
-const SessionCache = require('./session-cache')
-const BaseController = require('./base-controller')
+const SubApplication = require('./sup-app')
 const AuthenticationError = require('./errors').AuthenticationError
 
+let COOKIE = 'hiraafood'
+let LOGIN_PAGE = '/login.html'
 
-class UserService extends BaseController {
-    constructor(db) {
-        super()
-        this.db = db
-        //SessionCache.getSessionsFromDB(db)
-        this.app = express()
+class UserService extends SubApplication {
+    constructor(db,options) {
+        super(db,options)
         this.app.post('/create', this.createUser.bind(this))
-        this.app.post('/login', this.login.bind(this))
+        this.app.post('/login',  this.login.bind(this))
         this.app.post('/loginAsGuest', this.loginAsGuest.bind(this))
         this.app.post('/relogin', this.relogin.bind(this))
         this.app.get('/address', this.getAddress.bind(this))
@@ -20,33 +17,68 @@ class UserService extends BaseController {
         this.app.post('/address', this.createAddress.bind(this))
     }
 
+    /*
+     */
+    async authorize(req,res,next) {
+        console.log(`==========> authorize ${req.url} user=${req.user}`)
+        if (req.url == '/' || req.url == '/index.html' || req.url == LOGIN_PAGE) {
+            next()
+            // must call return
+            return
+        }
+        if (req.session.user) {
+            next()
+            return
+        }
+        console.log(`redicting to ${LOGIN_PAGE}`)
+        return res.redirect(LOGIN_PAGE)
+        
+    }
+
+    async authenticate(uid, pwd, callabck) {
+        let user = await this.db.executeSQL('find-user', [uid])
+        if (!user) {
+            callabck.call(null, new AuthenticationError('user-not-found', [uid]))
+        } else {
+            user.roles = user.roles.split(',')
+            let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
+            if (!row) {
+                callabck.call(null, new AuthenticationError('wrong-password', [uid] ))
+            } else {
+                callabck.call(null, null, user)
+            }
+        }
+    }
+
+    /*
+     * Login a user.
+     * Request carries basic authentication header
+     * Response cookies are sent back
+     */
     async login(req, res, next) {
         try {
             const creds = this.extractAuthrozationHeader(req, res)
             const uid = creds.username
             const pwd = creds.password
-            let user = await this.db.executeSQL('find-user', [uid])
-            if (!user) {
-                throw new AuthenticationError('user-not-found', [uid])
-            }
-            user.roles = user.roles.split(',')
-            let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
-            if (!row) {
-                throw new AuthenticationError('wrong-password', [uid] )
-            }
-            let session = SessionCache.findSessionForUser(user.id)
-            if (session) {
-                console.info(`session [${session.id}] exists for user [${user.id}]`)
-            } else {
-                console.info(`creting new session for user [${user.id}]`)
-                session = await SessionCache.createSession(user, this.db)
-                console.log('new session ${session}')
-            }
-            res.status(httpStatus.OK).json(session)
+            await this.authenticate(uid,pwd, (err,user)=> {
+                console.log(`authenticate callback has received error ${err} user=${user}`)
+                if (!err) {
+                    req.session.regenerate(function(){
+                        req.session.user = user
+                        res.cookie(COOKIE, {id:req.session.id})
+                        res.status(httpStatus.OK).json(user)
+                    })
+                } else {
+                    res.status(httpStatus.FORBIDDEN).json({message:err})
+                }
+            })
         } catch (e) {
+            console.error(e)
             next(e)
         }
     }
+
+
     async relogin(req, res, next) {
         try {
             let authToken = req.headers['x-auth-token']
@@ -62,15 +94,10 @@ class UserService extends BaseController {
 
     async loginAsGuest(req, res, next) {
         try {
-            let user = { id: 'guest', page: 'customer' }
-            let session = SessionCache.findSessionForUser(user.id)
-            if (session) {
-                console.info(`session [${session.id}] exists for user [${user.id}]`)
-            } else {
-                console.info(`creting new session for user [${user.id}]`)
-                session = await SessionCache.createSession(user, this.db)
-            }
-            res.status(httpStatus.OK).json(session)
+            const guest = { id: 'guest', home: 'customer' }
+            req.session.user = guest
+            res.cookie(COOKIE, {id:0})
+            res.status(httpStatus.OK).json(guest)
         } catch (e) {
             next(e)
         }
@@ -100,7 +127,7 @@ class UserService extends BaseController {
         for (var kind in user.addresses) {
             let addr = user.addresses[kind]
             var params = [addr.kind, user.id, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
-            await this.db.executeSQLInTxn(txn, 'insert-address', params)
+            await this.db.executeSQLInTxn(txn, 'upsert-address', params)
         }
         let page = user.page
         for (var i = 0; i < user.roles.length; i++) {
@@ -127,7 +154,7 @@ class UserService extends BaseController {
             const uid = this.queryParam(req, res, 'uid')
             const addr = this.postBody(req, res)
             let params = [addr.kind, uid, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
-            const address = await this.db.executeSQL('insert-address', params)
+            const address = await this.db.executeSQL('upsert-address', params)
             res.status(httpStatus.OK).json(address)
         } catch (e) {
             next(e)

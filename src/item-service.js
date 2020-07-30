@@ -1,11 +1,9 @@
-const express         = require('express')
 const httpStatus      = require('http-status-codes')
-const BaseController = require('./base-controller')
-class ItemService extends BaseController {
+const SubApplication = require('./sup-app')
+
+class ItemService extends SubApplication {
     constructor(database, options)  {
-        super()
-        this.db      = database
-        this.app     = express()
+        super(database, options)
         this.app.post('/',      this.createItem.bind(this))
         this.app.get('/',       this.findItem.bind(this))
         this.app.get('/catalog', this.getCatalog.bind(this))

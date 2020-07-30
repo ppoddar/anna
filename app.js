@@ -1,5 +1,9 @@
 const os              = require('os')
 const express         = require('express')
+const cookie_parser   = require('cookie-parser')
+const serveStatic     = require('serve-static')
+const session         = require('express-session')
+
 const http            = require('http')
 const https           = require('https')
 const fs              = require('fs')
@@ -13,6 +17,7 @@ const PaymentService  = require('./src/payment-service')
 const UserService     = require('./src/user-service')
 const PricingService  = require('./src/pricing-service')
 const ValidationService  = require('./src/validation-service')
+const { MemoryStore } = require('express-session')
 const ErrorHandler    = require('./src/errors').ErrorHandler
 const morgan          = require('morgan')('combined')
 
@@ -26,6 +31,7 @@ class Server {
      *               Defaults to config/config.json
      *   -d        : A JSON file for database configuration
      *               Defaults to config/database.json
+     * --docroot
      */
     constructor() {
         this.cmd        = new CommandLine()
@@ -40,8 +46,7 @@ class Server {
              throw new Error('no security section in configuration')
          }
         }
-        console.log(`listen port ${this.port}`)
-        console.log(`secure ${this.secure}`)
+        
         const databaseConfig = this.cmd.getConfig('-d', 'config/database.json')
         this.database = new Database(databaseConfig)
 
@@ -68,16 +73,35 @@ class Server {
         const app = express()
         app.set('port', this.port)
 
-        app.use(express.json());
+        app.use(session({
+            resave: false,
+            saveUninitialized: true,
+            secret: 'hiraafood',
+            cookie: {
+                httpOnly: false,
+                maxAge: 1000*60*60
+            }
+        }))
+        app.use(cookie_parser())
+        // all html files are authorized
+        app.use('/*.html', this.userService.authorize.bind(this.userService))
+
+        // access to admin pages
         app.use(express.static(this.docroot))
+        app.use('/admin', [this.ensureAuthenticated, express.static('/admin')])
+        
+        
         app.use(morgan)
+        app.use(express.json());
+
         app.use('/user',     this.userService.app)
         app.use('/item',     this.itemService.app)
         app.use('/order',    this.orderService.app)
         app.use('/invoice',  this.paymentService.app)
         app.use('/validate', this.validationService.app)
-        
-        // route definitions
+
+
+         // route definitions
         app.get('/info',        this.info)
         app.use(ErrorHandler)
 
@@ -95,17 +119,16 @@ class Server {
         
         var protocol = this.secure ? 'https' : 'http'
         var host = os.hostname()
-        console.log(`starting ${protocol}://${host}:${this.port}`)
-        /*
+        console.log("--------------------------------------------------")
+        console.log(`\x1b[32m starting ${protocol}://${host}:${this.port} \x1b[0m`)
+        console.log("--------------------------------------------------")
+
+        
         process.on('uncaughtException', function (e) {
             console.log(`***ERROR:${e}`)
             process.exit(1)
         })
-        server.on('error', function (e) {
-            console.error(`***ERROR:${e}`)
-            process.exit(1)
-        })
-        */
+        
         server.listen(this.port)
 
 
@@ -115,6 +138,12 @@ class Server {
         const content = fs.readFileSync('info.json')
         const info = JSON.parse(content)
         res.status(httpStatus.OK).json(info)
+    }
+
+    ensureAuthenticated(req,res,next) {
+        console.log('------------------ ensureAuthenticated ------------- ')
+
+        next()
     }
  }
 

@@ -1,10 +1,13 @@
+const SubApplication = require('./sup-app')
 /**
  * @classdesc
  * PricingService computes prices for each line item, 
  * texaes, and discounts
  */
-class PricingService {
-
+class PricingService extends SubApplication{
+    constructor(database,options) {
+        super(database,options)
+    }
     /**
      * computes discount on given lineitem
      * 

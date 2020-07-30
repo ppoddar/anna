@@ -3,14 +3,12 @@ const {MinimumLengthRule, CharacterTypeRule,
     StringCharacterTypeRule} 
 = require('./validation-rule')
 const CharacterType = require('./char-type')
-const BaseController = require('./base-controller')
-const express         = require('express')
+const SubApplication = require('./sup-app')
 const httpStatus = require('http-status-codes')
 
-class ValidationService extends BaseController {
-    constructor() {
-        super()
-        this.app = express()
+class ValidationService extends SubApplication {
+    constructor(db,options) {
+        super(db,options)
         this.app.post('/user',      this.validateUsername.bind(this))
         this.app.post('/password',  this.validatePassword.bind(this))
     }

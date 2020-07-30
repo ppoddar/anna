@@ -1,12 +1,10 @@
-const exppress = require('express')
 const httpStatus = require('http-status-codes')
-const BaseController = require('./base-controller')
-class OrderService extends BaseController{
+const SubApplication = require('./sup-app')
 
-    constructor(database) {
-        super()
-        this.db = database
-        this.app = exppress()
+class OrderService extends SubApplication{
+
+    constructor(database,options) {
+        super(database,options)
 
         this.app.post('/', this.createOrder.bind(this))
     }

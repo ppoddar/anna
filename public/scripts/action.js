@@ -16,8 +16,7 @@ class Action {
 	static async fetchAddress(cb) {
 		var user = Application.getUser(true)
 		$.ajax({
-			url : `/user/addresses/?uid=${user.id}`,
-			headers: Action.authHeader()
+			url : `/user/addresses/?uid=${user.id}`
 		}).done(function(addresses) {
 			if (DEBUG) console.log(`fetched ${Object.keys(addresses)} addresses for user [${user.id}]`)
 			if (DEBUG) console.log(addresses)
@@ -64,8 +63,7 @@ class Action {
 		$.ajax({url:`/order/?uid=${Action.getCurrentUser().id}`,
 			method: 'POST',
 			contentType: 'application/json',
-			data: JSON.stringify(items),
-			headers: Action.authHeader()
+			data: JSON.stringify(items)
 		}).done(function(order) { 
 			if (DEBUG) console.log('received order')
 			if (DEBUG) console.log(order)
@@ -84,8 +82,7 @@ class Action {
 		$.ajax({url:`/invoice/?uid=${Action.getCurrentUser().id}&oid=${order.id}`,
 			method: 'POST',
 			contentType: 'application/json',
-			data: JSON.stringify(payload),
-			headers: Action.authHeader()
+			data: JSON.stringify(payload)
 		}).done(function(invoice) { 
 			if (DEBUG) console.log('received invoice')
 			if (DEBUG) console.log(invoice)
@@ -153,9 +150,9 @@ class Action {
 			url: '/user/loginAsGuest', 
 			method: 'POST'
 		}).success(function(response) { // send no credentials
-			if (DEBUG) console.log('response form /user/login')
+			if (DEBUG) console.log('response form /user/loginAsGuest')
 			if (DEBUG) console.log(response)
-			Application.saveSession(response)
+			//Application.saveSession(response)
 			Application.open()
 		}).fail(function(err) {
 			Application.clearUser()
@@ -163,23 +160,7 @@ class Action {
 		})
 	}
 	
-	/**
-	 * header with auth token for current user
-	 */	
-	static authHeader() {
-		let user   = Application.getUser(true)
-		var header = {
-			'x-auth-token' : user.auth,
-			'x-user'       : user.id
-		}
-		//console.log(JSON.stringify(header))
-		return header
-	}
-
-	static getCurrentUser() {
-		let user   = Application.getUser(true)
-		return user
-	}
+	
 	/**
 	 * 
 	 * @param {*} user 
@@ -189,12 +170,11 @@ class Action {
 			var url = `/user/relogin`
 			$.ajax({
 				url: url, 
-				method: 'POST',
-				headers : Action.authHeader()
+				method: 'POST'
 			}).success(function(session) {
 				if (DEBUG) console.log('relogin success ')
 				if (DEBUG) console.log(session)
-				Application.saveSession(session)
+				//Application.saveSession(session)
 				
 				Application.open()
 			}).fail(function(response) {

@@ -4,7 +4,7 @@ const vsprintf = require('sprintf-js').vsprintf
 // The format will be used by replacing variables at runtime
 // The error thrown will have an array of variables at constructions
 const ERROR_MESSAGES = {
-    'user-not-found': 'user [%s] is not found',
+    'user-not-found': 'user [%s] not found',
     'wrong-password': 'wrong password for [%s]',
     'missing-query-param': 'missing query parameter [%s]',
     

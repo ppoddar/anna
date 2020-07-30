@@ -1,22 +1,19 @@
-const express = require('express')
 const Razorpay = require('razorpay')
-const BaseController = require('./base-controller')
+const SubApplication = require('./sup-app')
 
 /**
  * payment service .
  * Service methods are async and they throw exception.
  */
-class PaymentService extends BaseController {
-    constructor(db) {
-        super()
-        this.db = db
+class PaymentService extends SubApplication {
+    constructor(db,options) {
+        super(db,options)
         this.merchant_id = 'E6zizYl3YOaAtT'
         this.razorPay = new Razorpay({
             key_id: 'rzp_test_5GjkKK47NrE4b0',
             key_secret: 'kpwjzn4pPpaVdDlXBqmYq5Ku'
         })
 
-        this.app = express()
         this.app.post('/create', this.createInvoice.bind(this))
     }
 

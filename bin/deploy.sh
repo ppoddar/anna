@@ -126,7 +126,7 @@ else  # local deployment
     if [[ $DATABASE -eq 1 ]]; then
         source ./database/deploy-database.sh $ASK_PASSWORD
     fi
-    #echo kill node process named $APP and listening on port $PORT
+    echo kill node process named $APP and listening on port $PORT
     ps -ef | grep nodemon | grep -v grep | awk '{print $2}' | xargs kill -9
     lsof -nP -iTCP:$PORT  | grep node    | awk '{print $2}' | xargs kill -9
     
