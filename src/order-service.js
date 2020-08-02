@@ -1,5 +1,5 @@
 const httpStatus = require('http-status-codes')
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
 
 class OrderService extends SubApplication{
 
@@ -19,11 +19,17 @@ class OrderService extends SubApplication{
      * @param {*} lineitems array of lineitems (sku,units,comment?)
      * 
      * @returns an order with its lineitems
+     * 
+     * exception:  The method body is enclosed in try-catch. The functions
+     * in the method body can throw asynchronous exception.
+     * The cath block call next(e) -- not rethorw e
+     * The last line of defence is ErrorHandler in app.js that would
+     * proess the error for end-user consumption.
      */
     async createOrder(req,res,next) {
-        
-            var lineitems = this.postBody(req, res, true)
-            var uid   = this.queryParam(req, res, 'uid')
+        try {
+            var lineitems = await this.postBody(req, true)
+            var uid   = await this.queryParam(req, 'uid')
             //console.debug(`createOrder  uid=${uid}`)
             let txn    = await this.db.begin()
             let result = await this.db.executeSQL('insert-order', [uid])
@@ -52,6 +58,10 @@ class OrderService extends SubApplication{
             await this.db.commit(txn)
         
             res.status(httpStatus.OK).json(order)
+        } catch (e) {
+            next(e)
+        }
+        
     }
 
     async createInvoice(req,res,next) {

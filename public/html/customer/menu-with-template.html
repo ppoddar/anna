@@ -1,0 +1,28 @@
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0/handlebars.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+</head>
+<body>
+
+<div id='test'></div>
+<script id="first-template" type="x/text-handlebars-template">
+
+    {{name}} by Handlebar template
+
+</script>   
+
+<script type="text/javascript">
+var theTemplateScript = $('#first-template').html()
+var theTemplate = Handlebars.compile(theTemplateScript)
+var context = {name:'piku'}
+var compiledHTML = theTemplate(context)
+
+$('#test').html(compiledHTML)
+
+</script>
+</body>
+
+
+
+</html>

@@ -26,8 +26,8 @@ select-invoice-items:
 insert-invoice:  
     text: > 
         INSERT INTO INVOICES 
-        (ID, CREATED, STATUS, BILLING_ADDRESS, DELIVERY_ADDRESS) 
-        VALUES ($1, NOW(), 'CREATED', $2, $3) 
+        (ID, CREATED, STATUS) 
+        VALUES ($1, NOW(), 'CREATED') 
 
 insert-invoice-item:  
   text: >

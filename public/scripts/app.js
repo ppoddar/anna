@@ -3,6 +3,7 @@ import Cart from  './model/cart.js'
 import Order from  	 './model/order.js'
 import Invoice from  './model/invoice.js'
 import Address from  './model/address.js'
+import LoginDialog from './forms/login-dialog.js'
 
 /** ---------------------------------------------------------------
  * 		Main application
@@ -40,7 +41,7 @@ const DELIVERY_ADDRESS_KEY = 'delivery-address'
  * A page initializes itself from local/session storage. 
  */
 const PAGES = {
-	'customer'  : {title:'order',   page: 'html/customer/index.html'},
+	'customer'  : {title:'order',   page: 'html/customer/menu.html'},
 	'delivery'	: {title:'deliver', page: 'html/delivery/index.html'},
 	'packing'   : {title:'pay',     page: 'html/packing/index.html'},
 	'kitchen'	: {title:'kitchen', page: 'html/kitchen/index.html'},
@@ -57,15 +58,33 @@ class Singleton {
 }
 
 class Application {
+	constructor() {
+		//console.log('----------------------- creating application ------------------')
+		this.user = this.getCurrentUser(false)
+		console.log(`current user:${JSON.stringify(this.user)}`)
+	}
+	/*
+	 * sets current user for cookie, if any
+	 */
+	setUser() {
+		this.user = this.getCurrentUser(false)
+		if (!this.user) {
+			throw new Error('no cookie to set user')
+		}
+	}
 	/**
 	 * Starting point of application.
-	 * Open home page for current user.
+	 * If an user exists, opens home page for current user.
+	 * Otherwise, open login dialog
 	 * 
 	 */
 	open() {
-		let user = this.getUser(true)
-		console.assert(user.home in PAGES, `no page assigned to ${user.home}`)
-		window.location = PAGES[user.home].page
+		console.log(`open application ${this.user}`)
+		if (this.user != null) {
+			window.location = PAGES[this.user.home].page
+		} else {
+			new LoginDialog().open()
+		}
 	}
 
 	getOrder() {
@@ -138,36 +157,39 @@ class Application {
 		return page
 	}
 	/**
-	 * gets current user from local storage.
+	 * gets current user from cookie, if any.
 	 * 
-	 * @param mustExist
-	 * 
-	 * @returns undefined if no user in local storage
-	 * or throws exception id mustExist is true
 	 */
-	getUser(mustExist) {
-		var userString = localStorage.getItem(USER_KEY)
-		if (!this.isNull(userString)) {
-			return new User(JSON.parse(userString))
+	getCurrentUser(mustExist) {
+		var user
+		var cookie = this.getCookie('hiraafood')
+		if (cookie) {
+			const data = JSON.parse(cookie)
+			user      = data.user
+			user.auth = data.id
 		} else if (mustExist) {
-			throw new Error('***ERROR no ' + USER_KEY + ' in local storage')
-		} else {
-			return null
+			new LoginDialog().open()
 		}
+		return user
 	}
+
+	getCookie(cname) {
+		var name = cname + "=";
+		var decodedCookie = decodeURIComponent(document.cookie);
+		var ca = decodedCookie.split(';');
+		for(var i = 0; i <ca.length; i++) {
+		  var c = ca[i];
+		  while (c.charAt(0) == ' ') {
+			c = c.substring(1);
+		  }
+		  if (c.indexOf(name) == 0) {
+			return c.substring(name.length, c.length);
+		  }
+		}
+		return "";
+	  }
 	
-	/**
-	 * saves session in local storage. 
-	 * Session id becomes auth token for user
-	 * The user must have auth token
-	 */
 	
-	saveSession(session) {
-		var user = session.user
-		user['auth'] = session.id
-		//console.log('saved session ' + user.id + ':' + user.auth)
-		localStorage.setItem(USER_KEY, JSON.stringify(user))
-	}
 
 	/**
 	 * retrieves cart object from sesssion storage.

@@ -126,6 +126,7 @@ class Server {
         
         process.on('uncaughtException', function (e) {
             console.log(`***ERROR:${e}`)
+            console.trace(e)
             process.exit(1)
         })
         

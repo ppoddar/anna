@@ -3,7 +3,7 @@ const {MinimumLengthRule, CharacterTypeRule,
     StringCharacterTypeRule} 
 = require('./validation-rule')
 const CharacterType = require('./char-type')
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
 const httpStatus = require('http-status-codes')
 
 class ValidationService extends SubApplication {

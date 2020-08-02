@@ -22,6 +22,18 @@
 }   
 
 </style>
+<script>
+$().ready(function() {
+  $('body').fadeIn(100)
+  $(document).ajaxSend(function(evet, xhr, settings){
+    console.log('------------------------------------------')
+    console.log(`${settings.method} ${settings.url}`)
+    console.log('------------------------------------------')
+
+  })
+})
+</script>
+
 <body>
 	
 	
@@ -48,19 +60,13 @@
 <script type="module">
 
 import Application from './scripts/app.js'
-import Action      from './scripts/action.js'
-import LoginDialog from './scripts/forms/login-dialog.js'
 
- $('#enter').on('click', function() {
-	var user = Application.getUser(false) // may not exist
-	console.log('current user: ' + JSON.stringify(user))
-	if (!Application.isNull(user) && user.id != 'guest') {
-    console.log(`relogin user [${user.id}]`)
-		Action.relogin(user.id)
-	} else {
-		new LoginDialog().open()
-	}
-  })
+$('#enter').on('click', () => {
+  Application.open()
+})
+ 
+
+  
 </script>
 </body>
 </html>

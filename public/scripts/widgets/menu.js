@@ -5,8 +5,6 @@
  * right column.
  * Same item may appear in multiple categories
  */
-
-
 import Item     from '../model/item.js';
 import Category from './category.js';
 import Action   from '../action.js';
@@ -15,7 +13,7 @@ import Application   from '../app.js';
 const CATEGORY_LABELS = {
 	'veg' : 'Vegeterian',
 	'non-veg': 'Non-vegeterian',
-	'seffood': 'Seafood'
+	'seafood': 'Seafood'
 }
 
 class Menu {
@@ -91,7 +89,7 @@ class Menu {
 	 * categories and rendered
 	 */
 	fetchItemCatalog($container) {
-		Action.fetchItemCatalog((items) => {
+		Action.fetchItemCatalog((err,items) => {
 			this.categorize(items)
 			$container.append(this.render())
 		})

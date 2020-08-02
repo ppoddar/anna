@@ -1,5 +1,6 @@
 const Razorpay = require('razorpay')
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
+const httpStatus = require('http-status-codes')
 
 /**
  * payment service .
@@ -14,7 +15,7 @@ class PaymentService extends SubApplication {
             key_secret: 'kpwjzn4pPpaVdDlXBqmYq5Ku'
         })
 
-        this.app.post('/create', this.createInvoice.bind(this))
+        this.app.post('/', this.createInvoice.bind(this))
     }
 
     async createPayorder(oid, amount) {
@@ -94,20 +95,12 @@ class PaymentService extends SubApplication {
      */
     async createInvoice(req, res, next) {
         try {
-            const oid = this.queryParam(req, res, 'oid')
-            const billingAddress_id = this.queryParam(req, res, 'billing_address')
-            const deliveryAddress_id = this.queryParam(req, res, 'delivery_address')
+            const oid = this.queryParam(req, 'oid')
             let lineitems = await this.db.executeSQL('select-order-items', [oid])
             let txn = await this.db.begin()
-            let invoice = {
-                id: oid,
-                billingAddress: billingAddress_id,
-                deliveryAddress: deliveryAddress_id,
-                items: []
-            }
+            let invoice = {id: oid, items: []}
             // order of SQL execution is important
-            await this.db.executeSQLInTxn(txn, 'insert-invoice', [invoice.id,
-                billingAddress_id, deliveryAddress_id])
+            await this.db.executeSQLInTxn(txn, 'insert-invoice', [invoice.id])
 
             let totalDiscount = 0.0
             for (var i = 0; i < lineitems.length; i++) {
@@ -136,6 +129,8 @@ class PaymentService extends SubApplication {
             await this.db.executeSQLInTxn(txn, 'record-order-event', [order.id, 'CREATED'])
 
             await this.db.commit(txn)
+
+            res.status(httpStatus.OK).json(invoice)
         } catch (e) {
             next(e)
         }

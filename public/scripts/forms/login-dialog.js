@@ -45,10 +45,8 @@ class LoginDialog extends BasicDialog {
      */
     handleServerResponse(req, response) {
         console.log(`${req} server response`)
-        let session = response
-		console.log(session)
-		Application.saveSession(session)
-		Application.open()
+        Application.setUser()
+        Application.open()
     }
 
     handleError(req, error) {

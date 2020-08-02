@@ -1,5 +1,5 @@
 const httpStatus = require('http-status-codes')
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
 const AuthenticationError = require('./errors').AuthenticationError
 
 let COOKIE = 'hiraafood'
@@ -65,7 +65,7 @@ class UserService extends SubApplication {
                 if (!err) {
                     req.session.regenerate(function(){
                         req.session.user = user
-                        res.cookie(COOKIE, {id:req.session.id})
+                        res.cookie(COOKIE, JSON.stringify({id:req.session.id,user:user}))
                         res.status(httpStatus.OK).json(user)
                     })
                 } else {
@@ -166,16 +166,14 @@ class UserService extends SubApplication {
      */
     async getAddresses(req, res, next) {
         try {
-            const user = this.queryParam(req, res, 'uid')
+            const user = this.queryParam(req, 'uid')
             let rs = await this.db.executeSQL('select-all-address', [user])
             var addresses = []
             //console.log(`got ${rs.length} rows`)
             for (var i = 0; i < rs.length; i++) {
                 const address = rs[i]
-                //console.log(`address[${i}]=${address}`)
                 addresses.push(address)
             }
-            //console.log(addresses)
             res.status(httpStatus.OK).json(addresses)
         } catch (e) {
             next(e)
@@ -188,34 +186,6 @@ class UserService extends SubApplication {
         const address = await this.db.executeSQL('select-address-by-kind', [user, kind])
         res.status(httpStatus.OK).json(address)
     }
-
-
-
-    /**
-     * gets current user associated with given authorization token.
-     * 
-     * @param {*} auth an authorization token issued by this service.
-     * @returns an user associated with session identified by given token.
-     * Or null if no sesssion exists
-     */
-    getUser(auth) {
-        if (auth) {
-            let session = SessionCache.findSession(auth)
-            if (session) {
-                return session.user
-            }
-        }
-    }
-
-    findSession(auth) {
-        if (auth) {
-            return SessionCache.findSession(auth)
-        }
-    }
-    getSessions() {
-        return SessionCache.getSessions()
-    }
-
 
 }
 module.exports = UserService

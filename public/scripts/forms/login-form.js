@@ -1,8 +1,4 @@
 import BasicForm    from "./basic-form.js";
-import SignupForm   from "./signup-form.js"
-import AddressForm   from "./address-form.js"
-import Wizard       from './wizard.js'
-import Action       from "../action.js";
 
 class LoginForm extends BasicForm {
     constructor(dialog) {

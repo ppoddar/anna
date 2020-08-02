@@ -1,5 +1,4 @@
 import WidgetFactory from "../widgets/widget-factory.js"
-import Alert from "./alert.js"
 
 const HEADER_STYLES = {
     'info'   : 'bg-primary',
@@ -15,12 +14,9 @@ const DEFAULT_OPTIONS = {
     id: 'basic-dialog',
     title: '',
     type: 'info',
-    size: 'large'
+    size: 'small'
 }
 
-function back() {
-    window.history.back()
-}
 
 /**
  * basic dialog has a form as its body and customizable
@@ -89,7 +85,7 @@ class BasicDialog {
 
     /**
      * creates each component (header, body and footer) of a dialog 
-     * subclasses can override to custoize look and feel of each part
+     * subclasses can override to customize look and feel of each part
      */
 	createModal() {
         if (this.modal) return this.modal
@@ -134,8 +130,16 @@ class BasicDialog {
         $logo.css('float', 'left')
         $logo.attr('src', '/images/logo.png')
 
+        var $close = $('<button>')
+        $close.attr('type', 'button')
+        $close.addClass('close')
+        $close.attr('data-dismiss', 'modal')
+        $close.attr('aria-hidden', 'true')
+        $close.text('x')
+
+
         var $title  = this.$el('<div>', 'modal-title', [$logo, $text])
-        var $header = this.$el('<div>', 'modal-header', $title)
+        var $header = this.$el('<div>', 'modal-header', $title, $close)
         $header.addClass(HEADER_STYLES[this.options.type])
 
 		return $header
@@ -185,9 +189,11 @@ class BasicDialog {
 
         $button.attr('disabled', props.disabled || false)
         $button.data('close',    props.close    || false)
+        $button.attr('validate', props.validate || false)
         var self = this
 
         $button.on('click', function(evt)  {
+            if (!$(this).attr('validate')) return
             evt.stopPropagation()
             evt.preventDefault()
             //var _this = $(this)

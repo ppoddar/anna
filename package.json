@@ -31,6 +31,7 @@
     "pg": "^8.3.0",
     "pg-types": "^3.0.0",
     "razorpay": "^2.0.6",
+    "selenium-webdriver": "^4.0.0-alpha.7",
     "server-static": "^2.0.5",
     "sprintf-js": "^1.1.2"
   },

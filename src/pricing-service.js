@@ -1,4 +1,4 @@
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
 /**
  * @classdesc
  * PricingService computes prices for each line item, 

@@ -1,28 +1,28 @@
 import Application from './app.js'
-import LoginDialog from './forms/login-dialog.js'
 import Alert from './forms/alert.js'
 
-const DEBUG = true
 /**
  * Action carries out all server side requests via AJAX on behalf
  * of clients.
- * The response is transmitted back to the caller via callback.
+ * The methods accept a callback function with signature
+ *   	callback(err,data)
+ *  where data is the response received from server converted
+ *  to a JSON object
+ *  If a server ajax call fails, an Alert is displayed. 
+ *  The caller may decide to further process teh error
  */
 class Action {
 	/**
-	 * Fetch addresses of current user
-	 * @param {} cb 
+	 * Fetch all addresses of current user.
 	 */
 	static async fetchAddress(cb) {
-		var user = Application.getUser(true)
+		var user = Application.getCurrentUser(true)
 		$.ajax({
 			url : `/user/addresses/?uid=${user.id}`
 		}).done(function(addresses) {
-			if (DEBUG) console.log(`fetched ${Object.keys(addresses)} addresses for user [${user.id}]`)
-			if (DEBUG) console.log(addresses)
-			cb.call(null, addresses)
+			cb.call(null, null, addresses)
 		}).fail(function(err){
-			console.log(err)
+			new Alert().show(err)
 		})
 	}
 
@@ -34,7 +34,9 @@ class Action {
 			contentType: 'application/json'
 		}).done(function(items) {
 			//console.log(`fetched ${items.length} items`)
-			cb.call(null, items)
+			cb.call(null, null, items)
+		}).fail(function(err){
+			new Alert().show(err)
 		})
 	}
 
@@ -45,50 +47,41 @@ class Action {
 			contentType: 'application/json',
 			data: JSON.stringify(user)
 		}).done(function (response) {
-			cb.call(response)
+			cb.call(null, response)
 		}).fail(function(err){
-			console.log(err)
-			alert(JSON.stringify(err))
+			new Alert().show(err)
 		})
 	}
 
 	/**
-	 * creates a new order by content of the cart
-	 * @param {*} cart 
+	 * creates a new order by content of the cart.
+	 * @param {*} cart content of the cart. The content is a dictionary,
+	 * but payload is an array of values
 	 * @param {*} callback 
 	 */
 	static createOrder(items, callback) {
-		if (DEBUG) console.log('checkout cart items')
-		if (DEBUG) console.log(items)
-		$.ajax({url:`/order/?uid=${Action.getCurrentUser().id}`,
+		const user = Application.getCurrentUser(true)
+		var values = []
+		Object.keys(items).forEach((k)=>{values.push(items[k])})
+		$.ajax({url:`/order/?uid=${user.id}`,
 			method: 'POST',
 			contentType: 'application/json',
-			data: JSON.stringify(items)
+			data: JSON.stringify(values)
 		}).done(function(order) { 
-			if (DEBUG) console.log('received order')
-			if (DEBUG) console.log(order)
-			callback.call(null, order)
+			callback.call(null, null, order)
 		}).fail(function(err){
-			console.log(err)
+			new Alert().show(err)
 		})		
 	}
 
-	static createInvoice(order, deliveryAddress, billingAddress, callback) {
-		console.log('creating invoice')
-		let payload = {
-			deliveryAddress: deliveryAddress,
-			billingAddress : billingAddress
-		}
-		$.ajax({url:`/invoice/?uid=${Action.getCurrentUser().id}&oid=${order.id}`,
+	static createInvoice(oid,  callback) {
+		$.ajax({url:`/invoice/?oid=${oid}`,
 			method: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify(payload)
+			contentType: 'application/json'
 		}).done(function(invoice) { 
-			if (DEBUG) console.log('received invoice')
-			if (DEBUG) console.log(invoice)
-			callback.call(null, invoice)
+			callback.call(null, null, invoice)
 		}).fail(function(err){
-			console.log(err)
+			new Alert().show(err)
 		})		
 	}
 
@@ -114,19 +107,14 @@ class Action {
 		var basicAuth = 'Basic ' + btoa(user + ':' + pwd)
 		var header = {'Authorization' : basicAuth}
 		console.log('/user/login POST header=' + JSON.stringify(header))
-		$("body").css("cursor", "progress");
 		$.ajax({
 			url: '/user/login', 
 			method: 'POST',
 			headers: header
 		}).success(function(data) {
-			console.log(`success /user/login ${data}`)
 			cb.call(null, null, data)
 		}).fail(function(err) {
-			console.log(`failure /user/login ${err}`)
-			cb.call(null, err, null)	
-		}).always(function(response){
-			$("body").css("cursor", "default");
+			new Alert().show(err)
 		})
 	}
 	
@@ -145,87 +133,27 @@ class Action {
 	 * if server login fails. The function
 	 * is called with complete server response
 	 */
-	static loginAsGuest() {
+	static loginAsGuest(cb) {
 		$.ajax({
 			url: '/user/loginAsGuest', 
 			method: 'POST'
 		}).success(function(response) { // send no credentials
-			if (DEBUG) console.log('response form /user/loginAsGuest')
-			if (DEBUG) console.log(response)
-			//Application.saveSession(response)
-			Application.open()
+			cb.call(null, null, data)
 		}).fail(function(err) {
-			Application.clearUser()
-			console.error(err)
+			new Alert().show(err)
 		})
 	}
-	
-	
-	/**
-	 * 
-	 * @param {*} user 
-	 * @param {*} target 
-	 */
-	static relogin() {
-			var url = `/user/relogin`
-			$.ajax({
-				url: url, 
-				method: 'POST'
-			}).success(function(session) {
-				if (DEBUG) console.log('relogin success ')
-				if (DEBUG) console.log(session)
-				//Application.saveSession(session)
-				
-				Application.open()
-			}).fail(function(response) {
-				console.log('relogin error ')
-				console.log(response)
-				Application.clearUser()
-				new LoginDialog().open()
-			})
-		}
-	
-	
+
 	static logout() {
-		var user = Application.getUser()
-		$.ajax({
-			url: '/user/logout',
-			method: 'POST'
-		}).always(function(){
-			Application.removeUser()
-		})
+		//TODO:
 	}
 	
 	
 	static about() {
-		
-		
+		//TODO:
 	}
 	
-	static bindAction(id, view) {
-		if (!view) {
-			console.log('can not bind action to undefiend view')
-			return
-		}
-		var ACTIONS = {
-			'checkout': Action.transition.bind(null, 'deliver'),
-			'clear'   : Action.clearCart,	
-			'login'   : Action.login,	
-			'relogin' : Action.relogin,	
-			'logout'  : Action.logOut,	
-			'about'   : Action.about	
-		}
-		if (!(id in ACTIONS)) {
-			console.log(`can not bind ${id} action to view`)
-			return
-		}
-		var action = ACTIONS[id]
-		view.on('click', function() {
-			action.call(null)
-		})
-	}
-
-
+	
 	static fetchOrdersByStatuses(statuses, cb) {
 		let url = `/order/status/?statuses=${statuses}`
 		$.ajax({url:url
@@ -261,7 +189,6 @@ class Action {
 		}).fail(function(err) {
 			cb.call(null, err, null)
 		})
-
 	}
 }
 

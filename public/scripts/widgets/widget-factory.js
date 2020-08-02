@@ -9,6 +9,7 @@ class WidgetFactory {
     static createButton(text, type) {
         var $button = $('<button>')
         var style = BUTTON_STYLES[type || 'primary']
+        $button.attr('id', text)
         $button.addClass(style)
         $button.text(text)
 

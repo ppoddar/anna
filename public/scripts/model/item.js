@@ -28,6 +28,7 @@ class Item {
 	//	console.log(this)
 	}
 	absolute(s) {
+		if (!s) return '/'
 		if (s.startsWith('/')) return s
 		return '/'+s
 	}
@@ -44,7 +45,7 @@ class Item {
 		$img.css('display', 'block')
 		
 		var $orderButton = $('<button>')
-		$orderButton.addClass('btn btn-primary btn-sm my-1')
+		$orderButton.addClass('btn btn-primary btn-sm my-1 order-button')
 		$orderButton.text('order')
 		$orderButton.on('click', () => {new OrderForm(this).open()})
 			
@@ -71,19 +72,21 @@ class Item {
 		var $price  = new Amount(this.price).render()
 		var $rating = new Rating(this.rating, false).render()
 
+		var $row = $('<div>')
+		var $col1 = $('<div>')
+		var $col2 = $('<div>')
+		$row.addClass('row')
+		$col1.addClass('col')
+		$col2.addClass('col')
+		$row.append($col1, $col2)
 		if ('list' === view) {
-			var $row = $('<div>')
-			$row.addClass('row')
-			var $col1 = $('<div>')
-			var $col2 = $('<div>')
-			$col1.addClass('col')
-			$col2.addClass('col')
 			$col1.append($img, $price, $rating, $orderButton)
-			$col2.append($title, $description, $category, $tags)
-			$row.append($col1, $col2)
+			$col2.append($title, $category, $tags)
 			return $row
 		} else if ('form' === view) {
-			return [$img, $title, $description, $category, $tags, , $price, $rating]
+			$col1.append($img, $price, $rating)
+			$col2.append($title, $description, $category, $tags)
+			return $row
 		} else {
 			throw new Error('unknown view [' + view + ']')
 		}

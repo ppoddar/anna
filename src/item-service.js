@@ -1,5 +1,5 @@
 const httpStatus      = require('http-status-codes')
-const SubApplication = require('./sup-app')
+const SubApplication = require('./sub-app')
 
 class ItemService extends SubApplication {
     constructor(database, options)  {

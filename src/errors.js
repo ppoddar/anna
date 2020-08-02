@@ -7,6 +7,7 @@ const ERROR_MESSAGES = {
     'user-not-found': 'user [%s] not found',
     'wrong-password': 'wrong password for [%s]',
     'missing-query-param': 'missing query parameter [%s]',
+    'payload-not-array': 'expected payload to be an array, but it was not'
     
 }
 
@@ -39,7 +40,6 @@ const ERROR_STATUS_CODES = {
     'AuthenticationError': httpStatus.FORBIDDEN
     
 }
-
 
 /*
  * converts message format by context

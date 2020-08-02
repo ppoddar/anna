@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hiraafood</title>
+    <title>Menu</title>
     
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
@@ -20,6 +20,17 @@
     <script>
     $().ready(function() {
         $('body').fadeIn(100)
+        $(document).ajaxSend(function(evet, xhr, settings)  {
+            console.log(`>>>>>>>>> ${settings.method} ${settings.url}`)
+
+        })
+        $(document).ajaxComplete(function(evet, xhr, settings)  {
+            const result = JSON.parse(xhr.responseText)
+            console.log(`<<<<<<<<<<<<<<< ${settings.method} ${settings.url}`)
+            console.log(result)
+            console.log('------------------------------------------')
+
+        })
     })
     </script>
   </head>
@@ -63,16 +74,11 @@
   $('#navbar').append($navbar.render())
 
   new Menu().fetchItemCatalog($('#menu'))
-  //let cart = Application.getCart()
-  //$('#cart').append(cart.render())
-  //$('#checkout').attr('disabled', cart.isEmpty())
   $('#checkout').on('click', () => {
       Action.createOrder(Application.getCart().items, 
-        (response) => {
-        console.log('saving order from checkout response ')
-        console.log(JSON.stringify(response))
-        Application.saveOrder(response)
-        window.location = './delivery.html'
+        (err, order) => {
+        sessionStorage.setItem('ORDER_ID', order.id)
+        window.location = './bill.html'
       })
   })
 

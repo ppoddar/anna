@@ -16,9 +16,8 @@ class Invoice {
         this.created = obj['created']
         this.items   = obj['items']
         this.payorder = obj['payorder']
-        this.billingAddress  = obj['billingAddress']
-        this.deliveryAddress = obj['deliveryAddress']
-        this.sameAddress     = obj['sameAddress']
+        this.billingAddress  = obj['billingAddress'] || null
+        this.deliveryAddress = obj['deliveryAddress'] || null
         
     }
     /**

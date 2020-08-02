@@ -4,9 +4,10 @@ function usage {
 cat << EOF
     Usage: ${BASH_SOURCE[0]} [-r|--remote] [--secure] [-p] [-h|--help|-?] 
     where
-       --remote      installs remotely
-       --secure
-       --db
+       --remote      installs remotely. Defaults false
+       --secure      uses https protocol. Defaults false.
+       --db          initializes database. Defaults false
+       -p            listening port. Required
        -h|-?|--help  print this help message and exit
 EOF
 }
@@ -101,10 +102,6 @@ function stop_process {
 
 pushd $HOME_DIR >&-
 
-echo --------------------------------------------------------------
-echo      deploying $APP application
-echo --------------------------------------------------------------
-
 if [[ $REMOTE -eq 1 ]];then
     package
     scp -i $PEM    $ZIPFILE $DEPLOY_ROOT/$ZIPFILE
@@ -119,10 +116,16 @@ if [[ $REMOTE -eq 1 ]];then
 EOSSH
 
 else  # local deployment
-    if [[ -z $PORT ]]; then
-        echo ***ERROR: no port specified for local deployment. Use -p option
+COLOR_RED='\033[0;31m'
+COLOR_GREEN='\033[0;32m'
+COLOR_RESET='\033[0m' # No Color
+    if [ -z $PORT ]; then
+        echo -e ${COLOR_RED} ***ERROR: no port specified for local deployment.${COLOR_RESET} Use -p option
         exit 1
     fi
+    echo --------------------------------------------------------------
+    echo -e ${COLOR_GREEN}     deploying $APP application  ${COLOR_RESET} 
+    echo --------------------------------------------------------------
     if [[ $DATABASE -eq 1 ]]; then
         source ./database/deploy-database.sh $ASK_PASSWORD
     fi
@@ -131,7 +134,7 @@ else  # local deployment
     lsof -nP -iTCP:$PORT  | grep node    | awk '{print $2}' | xargs kill -9
     
     APPLICATION=app.js
-    NODE_OPTIONS='--trace-exit --trace-uncaught --unhandled-rejections=strict --title='"$APP"
+    NODE_OPTIONS='--trace-exit --trace-warnings --trace-uncaught --title='"$APP"
     if [[ $SECURE -eq 0 ]];then
         APPLICATION_ARGS=' -p '$PORT
     else

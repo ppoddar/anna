@@ -36,7 +36,7 @@ class Navbar {
 		$icon.addClass('material-icons')
 		$icon.text('portrait')
 		let $name = $('<p>')
-		let user = Application.getUser(false)
+		let user = Application.getCurrentUser()
 		$name.text(user ? user.name : 'guest')
 		$name.addClass('text-white')
 		$profile.append($icon,$name)
@@ -45,7 +45,7 @@ class Navbar {
 		$navItem.addClass('navbar-item float-right')
 
 		let $dropdown = $('<div>')
-		$dropdown.addClass('dropdown')
+		$dropdown.addClass('dropdown btn-group dropleft')
 
 		let $button = $('<button>')
 		$button.addClass('btn dropdown-toggle')
