@@ -6,7 +6,7 @@ class OrderService extends SubApplication{
     constructor(database,options) {
         super(database,options)
 
-        this.app.post('/', this.createOrder.bind(this))
+        this.app.post('/:uid', this.createOrder.bind(this))
     }
 
     /**
@@ -28,8 +28,8 @@ class OrderService extends SubApplication{
      */
     async createOrder(req,res,next) {
         try {
-            var lineitems = await this.postBody(req, true)
-            var uid   = await this.queryParam(req, 'uid')
+            var lineitems = this.postBody(req, true)
+            var uid   = req.params.uid
             //console.debug(`createOrder  uid=${uid}`)
             let txn    = await this.db.begin()
             let result = await this.db.executeSQL('insert-order', [uid])
@@ -44,17 +44,11 @@ class OrderService extends SubApplication{
                 let item = await this.itemService.findItem(e.sku)
                 let price = item.price * e.units
                 total += price
-                let li = {sku:e.sku, name: item.name,
-                    price: price,
-                    units: e.units,
-                    comment:e.comment
-                }
+                let li = {sku:e.sku, name: item.name,units: e.units,comment:e.comment}
                 order['items'].push (li) 
                 await this.db.executeSQLInTxn(txn, 'insert-order-item', 
-                    [order.id, li.sku, li.name, li.price, li.units, li.comment])
+                    [order.id, li.sku, li.name, li.units, li.comment])
             }
-            order.total = total
-            await this.db.executeSQLInTxn(txn, 'update-order-total', [total, order.id])
             await this.db.commit(txn)
         
             res.status(httpStatus.OK).json(order)
@@ -62,25 +56,6 @@ class OrderService extends SubApplication{
             next(e)
         }
         
-    }
-
-    async createInvoice(req,res,next) {
-        try {
-            const uid = this.queryParam(req, 'uid')
-            const oid = this.queryParam(req, 'oid') 
-            const address_kind = this.queryParam(req, 'address_kind')
-            const order = await this.orderService.findOrder(oid)
-            const billingAddress_id  = await this.userService.getAddress(uid, 'billing').id
-            const deliveryAddress_id = await this.userService.getAddress(uid, address_kind).id
-            const invoice = await this.paymentService.createInvoice(
-                this.pricingService,
-                order,
-                billingAddress_id,deliveryAddress_id)
-
-            res.status(httpStatus.OK).json(invoice)
-        } catch(e) {
-            next(e)
-        }
     }
 
     

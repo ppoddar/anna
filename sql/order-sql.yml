@@ -1,33 +1,23 @@
 find-order:
     single: true
-    description: joins with invoices for amount
     text: >
-      SELECT id, user_id as user, created,  time_offset,  status, total  
+      SELECT id, user_id as user, created,  time_offset,  status
       FROM ORDERS 
       WHERE ID=$1
 
 insert-order:  
     single: true
     text: > 
-        INSERT INTO ORDERS (USER_ID, CREATED, TIME_OFFSET, STATUS) 
+        INSERT INTO ORDERS (USER_ID, CREATED_AT, TIME_OFFSET, STATUS) 
         VALUES ($1, NOW(), extract(TIMEZONE FROM NOW()), 'CREATED') 
-        RETURNING ID,USER_ID, CREATED, TIME_OFFSET, STATUS
-update-order-total: 
-    text: >
-        UPDATE ORDERS SET TOTAL=$1::FLOAT
-        WHERE ID = $2
+        RETURNING ID,USER_ID, CREATED_AT, TIME_OFFSET, STATUS
 
 select-order-items: 
     text:  >
-          SELECT sku, name, price, units, comment 
+          SELECT sku, name, units, comment 
           FROM ORDER_ITEMS 
           WHERE ORDER_FK=$1
 
-update-order-item: 
-    text: >
-          UPDATE ORDER_ITEMS 
-          SET units=$1::INTEGER, price=$2::FLOAT, COMMENT=$3
-          WHERE ORDER_FK=$4 and SKU=$5
 
 update-order-status: 
     text: >
@@ -42,8 +32,8 @@ delete-order-item:
 insert-order-item:  
   text: >
       INSERT INTO ORDER_ITEMS 
-      (ORDER_FK,  SKU, NAME, PRICE, UNITS, COMMENT)
-      VALUES ($1,  $2,  $3, $4::FLOAT, $5::INTEGER, $6)
+      (ORDER_FK,  SKU, NAME, UNITS, COMMENT)
+      VALUES ($1,  $2,  $3,  $4::INTEGER, $5)
 
 
 select-all-orders: 
@@ -66,7 +56,7 @@ select-order-by-status:
 select-ordres-by-timerange-and-status: 
     text: >
         SELECT ID FROM ORDERS 
-        WHERE CREATED BETWEEN $1 AND $2
+        WHERE CREATED_AT BETWEEN $1 AND $2
         AND STATUS=$3
 
 record-order-event: 

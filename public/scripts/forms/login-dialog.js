@@ -10,51 +10,47 @@ import Alert         from './alert.js'
  * 
  */
 class LoginDialog extends BasicDialog {
-	constructor() {
-        super({id:'login-dialog', title:'Login', type:'info', size:'large'})
-        this.form = new LoginForm(this)
-        this.createAction(
-           {label: 'login', 
-            action: () => {
-                var inputs = this.form.collectInputs()
-                Action.login(inputs.username, inputs.password, (err,response) => {
-                    if (err) this.handleError('login', err)
-                    else this.handleServerResponse('login', response)
-            })}
-        }),
-        this.createAction(
-            {label: 'login as guest', 
+    /*
+     * Create login dialog with given options.
+     * Uses a LoginForm as its form.
+     * The options will be passed to the form as well.
+     */
+	constructor(opts) {
+        super('login-dialog', opts)
+        this.form = new LoginForm(this, opts)
+        this.createAction({id:'login', label: 'login', 
+            action: this.login.bind(this)})
+        this.createAction({id:'login-as-guest', label: 'login as guest', 
             type:'secondary', 
-            action: ()=> { Action.loginAsGuest((err,response)=>{
-                if (err) this.handleError('loginAsGuest', err)
-                else this.handleServerResponse('loginAsGuest', response)
-            })}
-        }),
+            action: this.loginAsGuest.bind(this)})
+    }
 
-        this.createAction({
-            label:'Cancel', 
-            type: 'secondary',
-            action: ()=>{this.close()}
+    login() {
+        const uid = this.form.getFormInput('username').getValue()
+        const pwd = this.form.getFormInput('password').getValue()
+        Action.login(uid, pwd, (err, response)=>{
+            if (err) {
+                Application.eraseCookie()
+                new Alert('login error', err.responseText).open()
+            } else {
+                Application.setUser(response)
+                Application.open()
+            }
         })
     }
 
-
-    /**
-     * Response from login 
-     * @param {Response} response 
-     */
-    handleServerResponse(req, response) {
-        console.log(`${req} server response`)
-        Application.setUser()
-        Application.open()
-    }
-
-    handleError(req, error) {
-        console.log(`${req} server error`)
-        console.log(error)
-        Application.clearUser()
-        //this.close()
-        new Alert('Login Error', error.responseJSON.message).open()
+    loginAsGuest() {
+        Action.loginAsGuest((err)=>{
+            if (err) {
+                Application.eraseCookie()
+                new Alert(err).open()
+            } else {
+                Application.open()
+            }
+        })
     }
 }
+
+    
+
 export default LoginDialog

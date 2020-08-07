@@ -34,10 +34,12 @@ class SubApplication {
         } else if (def) {
             return def
         } else {
-            throw new InputError('missing-query-param', [p])
-            
+            throw new InputError('missing-query-param', 
+                `missing query parameter [${p}]`, [p])
         }
     }
+
+    
 }
 
 module.exports = SubApplication

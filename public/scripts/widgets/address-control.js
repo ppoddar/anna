@@ -1,8 +1,5 @@
-import AddressForm from '../forms/address-form.js';
-import Address from '../model/address.js';
-import WidgetFactory from './widget-factory.js'
-import Application 		from '../app.js'
-import BasicDialog from '../forms/basic-dialog.js';
+import Address       from '../model/address.js';
+import AddressWizard from '../forms/address-wizard.js'
 /**
  * shows a set of named addresses.
  * Each address is identified by its kind.
@@ -14,23 +11,23 @@ import BasicDialog from '../forms/basic-dialog.js';
  */
 class AddressControl {
 	/**
-	 * @param addresses a dictinary of address keyed in by kind
+	 * @param addresses an arry of address
 	 */
 	constructor(addresses) {
-		this.addresses = {}
-		for (var kind in addresses) {
-			let addr = addresses[kind]
-			if (addr instanceof Address) {
-				this.addresses[kind] = addr
-			} else {
-				this.addresses[kind] = new Address(addr)
-			}
-
-		}
-		this.group     = 'address-group'
-		this.$addressChoices = Application.$el('#address-choices')
-		this.$addressDisplay = Application.$el('#address-selected')
+		this.addresses = addresses
+		this.group           = 'address-group'
+		this.$addressChoices = $('<ul>')
+		this.$addressDisplay = $('<div>')
+		this.$addressChoices.addClass('col-sm-4 list-unstyled')
+		this.$addressDisplay.addClass('col-sm-8')
+		this.$main = $('<div>')
+		this.$main.addClass('container')
+		var $row = $('<div>')
+		$row.addClass('row no-gutters')
+		$row.append(this.$addressChoices, this.$addressDisplay)
+		this.$main.append($row)
 	}
+	
 	
 
 	/**
@@ -43,30 +40,33 @@ class AddressControl {
 		var selectIndex = select || 0
 		this.$addressChoices.empty()
 		var i = 0
-		//console.log(`select at ${selectIndex}`)
-		for (var kind in this.addresses) {
+		for (var i = 0; i < this.addresses.length; i++) {
 			var checked = (i == selectIndex)
-			var address = this.addresses[kind]
+			var address = this.addresses[i]
 			console.log(`showing ${i}-th address [${address.kind}] checked=${checked}`)
 			var $choice = this.createAddressChoice(this.group, address, checked)
-			let $li = $('<li>')
-			$li.append($choice)
-			this.$addressChoices.append($li)
+			this.$addressChoices.append($choice)
 			if (checked) this.showAddress(address)
-			i++
 		}
 		// creating new address is a choice
 		let $newAddress = this.createNewAddressChoice(this.group)
 		this.$addressChoices.append($newAddress)
+
+		return this.$main
 	}
 	
 	/**
-	 * finds the selected address kind
+	 * finds the selected address id
 	 */
-	getSelectedAddress() {
+	getSelectedAddressId() {
 		let selector = `input[name='${this.group}']:checked`
 		let kind = $(selector).val();
-		return this.addresses[kind]
+		for (var i = 0; i < this.addresses.length; i++) {
+			let address = this.addresses[i]
+			if (address.kind == kind) {
+				return address.id
+			}
+		}
 	}
 	
 	/**
@@ -83,25 +83,22 @@ class AddressControl {
   		$radio.attr('name',    group)
   		$radio.attr('checked', checked)
   		$radio.attr('value',   kind)
-		$radio.attr('id', `radio-${kind}`)
 
 		$radio.addClass('m-1')
 
-  		var $label = WidgetFactory.createLabel(kind, 'label', kind)
-		if (checked) $label.addClass('font-weight-bold')
-  		$label.on('click', () => {
-			//console.log('selection changed to ' + kind)
-			$('label').removeClass('text-primary')
-			$('label').removeClass('font-weight-bold')
-			$(this).addClass('text-primary font-weight-bold')
-			this.showAddress.bind(this, this.addresses[kind])()
-		  })
-		  $radio.on('click', ()=>this.showAddress(this.addresses[kind]))
+		var $label = $('<label>')
+		$label.text(address.kind)
+		$label.attr('id', `m-1 address-${kind}`)
+		$label.addClass(`address-label`)
 
-		  var $span = $('<span>')
-		  $span.append($radio, $label)
+		var $span = $('<span>')
+		$span.append($radio, $label)
 
-  		  return $span
+		let $li = $('<li>')
+		$li.append($span)
+		$li.on('click',  this.showAddress.bind(this, address))
+
+  		return $li
 	}
 	
 	/**
@@ -109,54 +106,41 @@ class AddressControl {
 	 * form to add details of an address.
 	 * The new address will be displayed
 	 */
-	createNewAddressChoice(group) {
+	createNewAddressChoice() {
 		let $button = $('<button>')
 		$button.addClass('btn btn-success round')
 		$button.text('new address')
 		$button.on('click', ()=>{
-			let dialog = new BasicDialog('new-address-dialog', 'New Address')
-			dialog.form = new AddressForm()
-			dialog.createAction({
-				label:'Add address', 
-				validate:true, 
-				action:this.addAddress.bind(this)})
-			dialog.createAction({
-				label:'Cancel',
-				validate:false,
-				action: dialog.close.bind(dialog)})
-			dialog.open()
+			let wizard = new AddressWizard()
+			wizard.onComplete((data) => {
+				const address = new Address(data)
+				this.addresses.push(address)
+				this.render(this.addresses.length-1)
+			}) 
+			wizard.open()
 		})
-
-		
 		return $button
-	}
-
-	addAddress(addr) {
-		console.log('addAddress')
-		console.log(addr)
-		if (!(addr instanceof Address)) {
-			addr = new Address(addr)
-		}
-		this.addresses[addr.kind] = addr
-		var n = Object.keys(this.addresses).length
-		this.render(n-1)
 	}
 
 	/**
 	 * shows given address on address display area
-	 * 
+	 * The radio button corresponding to the address is highlighted
 	 * @param addr an Address object
 	 */
-	showAddress(addr) {
-		let address
-		if (addr instanceof Address) {
-			address = addr
-		} else {
-			console.log(`given ${addr.constructor.name} is converetd to Address object`)
-			address = new Address(addr)
-		}
+	showAddress(address) {
 		this.$addressDisplay.empty()
 		this.$addressDisplay.append(address.render())
+
+		$('.address-label').each(function(idx) {
+			let text = $(this).text()
+			if (text == address.kind) {
+				$(this).addClass('text-primary')
+				$(this).addClass('font-weight-bold')
+			} else {
+				$(this).removeClass('text-primary')
+				$(this).removeClass('font-weight-bold')
+			}		
+		})
 		
 	}
 

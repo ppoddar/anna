@@ -11,64 +11,76 @@ const ERROR_MESSAGES = {
     
 }
 
-class ApplicationError extends Error {
-    constructor(id, variables) {
-        super('')
-        this.id = id
-        this.variables = variables || []
-    }
-}
-class ValidationError extends ApplicationError {
-    constructor(id, variables) {
-        super(id, variables)
-    }
-}
-class InputError extends ApplicationError {
-    constructor(id, variables) {
-        super(id, variables)
-    }
-}
-class AuthenticationError extends ApplicationError {
-    constructor(id, variables) {
-        super(id, variables)
-    }
-}
-
 const ERROR_STATUS_CODES = {
     'ValidationError':     httpStatus.BAD_REQUEST,
     'InputError':          httpStatus.BAD_REQUEST,
     'AuthenticationError': httpStatus.FORBIDDEN
     
 }
-
 /*
- * converts message format by context
+ * All errors thrown by the application derives from this class
  */
-function map_error(id,variables) {
-    if (id in ERROR_MESSAGES) {
-        const message_format = ERROR_MESSAGES[id]
-        const msg = vsprintf(message_format, variables)
-        return msg
-    } else {
-        console.warn(`can not map error code ${id}`)
-        return id
+class ApplicationError extends Error {
+    /*
+     * @param id an id maps the message to a more user facing text
+     * @param msg a message 
+     * @param variables used to format user-friendly message
+     */
+    constructor(id, status, msg, variables) {
+        super('')
+        this.id = id
+        this.status = status
+        this.message = msg
+        this.variables = variables || []
     }
 
+    
+    getMessage() {
+        if (this.id in ERROR_MESSAGES) {
+            const message_format = ERROR_MESSAGES[this.id]
+            const msg = vsprintf(message_format, this.variables)
+            return msg
+        } else {
+            console.warn(`can not map error code ${this.id}`)
+            return this.message
+        } 
+
+    }
 }
+
+class ValidationError extends ApplicationError {
+    constructor(id, msg, variables) {
+        super(id, httpStatus.BAD_REQUEST, msg, variables)
+    }
+}
+class InputError extends ApplicationError {
+    constructor(id,  msg, variables) {
+        super(id, httpStatus.BAD_REQUEST, msg, variables)
+    }
+}
+class AuthenticationError extends ApplicationError {
+    constructor(id, msg, variables) {
+        super(id, httpStatus.FORBIDDEN, msg, variables)
+    }
+}
+
+
+
+
 /*
  * all uncaught error reaches this function .
  * Code should throw a typed error with a message
  */
 function  ErrorHandler(err,req,res,next) {
-        console.log(`--------- caught following exception at app error handler -----------`)
-        let status = get_status(err)
-        if (status == httpStatus.INTERNAL_SERVER_ERROR) {
-            console.error(err)
-        } 
-        res.status(status)
-
-        let message = get_message(err)
-        res.json({message:message, url:req.url})
+        console.error(`--------- caught following exception at app error handler -----------`)
+        console.error(err)
+        var status = httpStatus.INTERNAL_SERVER_ERROR
+        var message = "no message"
+        if (err instanceof ApplicationError) {
+            status = err.status
+            message = err.getMessage()
+        }
+        res.status(status).json({message:message, url:req.url})
         console.log(`***ERROR: ${req.url} ${status}: ${message}`)
         next()
 }
@@ -95,5 +107,4 @@ module.exports = {
     ValidationError:ValidationError, 
     InputError: InputError,
     AuthenticationError:AuthenticationError,
-    map_error:map_error,
     ErrorHandler:ErrorHandler}

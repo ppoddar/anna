@@ -28,20 +28,20 @@
 
 <body style='display:none'>
     <div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
-    <div id='bill' class='container-fluid'>
-        <div class='text-center'><h5>Bill <span id='invoice-number'></span></h5></div>
-        <hr class="solid">
-        <div id='invoice-items'></div>
-        <hr class="solid">
-        <div class='d-flex flex-row no-gutters'>
-          <div class='col flex-grow-1'><b>Total</b></div>
-          <div id='invoice-total' class='col text-right'></div>
-        </div>
-        <hr class="solid">
+    <div id='bill' class='container-fluid'></div>
+    <div id='addresses' class="container-fluid">
+      <div class='row'>
+        <div class='col-6'>Delivery address</div>
+        <div class='col-6'>Billing Address</div>
+      </div>
+      <div class='row'>
+        <div id='delivery-address' class='col-6'></div>
+        <div id='billing-address' class='col-6'></div>
+      </div>
     </div>
 
     <div class='text-center'>
-      <button id='pay' class='btn btn-primary' disabled>Pay</button>
+      <button id='pay' class='btn btn-primary' disabled></button>
     </div>
 
 
@@ -50,26 +50,48 @@
         import Application  from '../../scripts/app.js'
         import PaymentGateway from '../../scripts/widgets/payment-gateway.js'
         import Invoice      from '../../scripts/model/invoice.js'
+        import Address      from '../../scripts/model/address.js'
         import Navbar       from '../../scripts/widgets/navbar.js'
 
         $('#navbar').append(new Navbar('Payment').render())
-        let order = Application.getOrder()
-        Action.createInvoice(order,
-            Application.getBillingAddress(),
-            Application.getDeliveryAddress(), (response) => {
-                const invoice = new Invoice(response)
-                Application.saveInvoice(invoice)
-                $('#bill').append(invoice.render())
-                $('#pay').attr('disabled', false)
-                let customer = Application.getCurrentUser(true)
-                $('#pay').on('click', () => new PaymentGateway()
-                    .pay(invoice, customer, function(data){
-                      console.log('razor payment successful')
-			                console.log(data)
-			                window.location = './thank-you.html'
-                }))
-            })
+        let oid              = sessionStorage.getItem('ORDER_ID')
+        let delivery_address = sessionStorage.getItem('DELIVERY_ADDRESS_ID')
+        let user = Application.getCurrentUser(true)
+
+        Action.setDeliveryAddress(oid, delivery_address, (err,response) => {
+             
+        })
+
+        Action.getInvoice(oid, (err, response)=> {
+          const invoice = new Invoice(response)
+          $('#bill').append(invoice.render())
+          $('#pay').attr('disabled', false)
+          $('#pay').text(`pay ${invoice.amount}`)
+          $('#pay').on('click', ()=>{
+            console.log(`Payment button clicked ${invoice.id} ${user.id}`)
+            new PaymentGateway().pay(invoice, user)
+          })       
+          
+        })
+
+
+        Action.getAddressById(user.id, delivery_address, (err, response) =>{
+          let address = new Address(response)
+          $('#delivery-address').append(address.render())
+        })
+
+        Action.getAddressByKind(user.id, 'billing', (err, response) =>{
+          let address = new Address(response)
+          $('#billing-address').append(address.render())
+        })
+
+
+            
+
     </script>
 </body>
 
 </html>
+
+,
+			

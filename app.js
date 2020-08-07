@@ -1,8 +1,7 @@
 const os              = require('os')
 const express         = require('express')
-const cookie_parser   = require('cookie-parser')
-const serveStatic     = require('serve-static')
-const session         = require('express-session')
+const cookieParser   = require('cookie-parser')
+const session = require('express-session')
 
 const http            = require('http')
 const https           = require('https')
@@ -19,7 +18,10 @@ const PricingService  = require('./src/pricing-service')
 const ValidationService  = require('./src/validation-service')
 const { MemoryStore } = require('express-session')
 const ErrorHandler    = require('./src/errors').ErrorHandler
-const morgan          = require('morgan')('combined')
+const morgan          = require('morgan')('tiny')
+
+let COOKIE_NAME = 'hiraafood'
+let ENTRY_PAGES  = ['/', './index.html', './login.html']
 
 class Server {
     /*
@@ -59,6 +61,7 @@ class Server {
         this.validationService  = new ValidationService()
         // establish service dependencies
         this.orderService.itemService = this.itemService
+        this.pricingService.itemService = this.itemService 
         this.paymentService.pricingService = this.pricingService
 
         autobind(this)
@@ -70,40 +73,36 @@ class Server {
      * starts the services and sets the routes
      */
     start() {
-        const app = express()
-        app.set('port', this.port)
-
-        app.use(session({
-            resave: false,
-            saveUninitialized: true,
-            secret: 'hiraafood',
-            cookie: {
-                httpOnly: false,
-                maxAge: 1000*60*60
-            }
-        }))
-        app.use(cookie_parser())
-        // all html files are authorized
-        app.use('/*.html', this.userService.authorize.bind(this.userService))
+        this.app = express()
+        this.app.set('port', this.port)
+        this.app.use(morgan)
+        this.app.use(cookieParser())
+        this.app.use(session({
+            name: 'hiraafood',
+            saveUninitialized:true,
+            resave:true, 
+            secret:'hiraafood',
+            cookie:{path:'/'}}))
+        // every path are served only if in a session
+        this.app.use('/*.html', this.getCurrentSession.bind(this))
 
         // access to admin pages
-        app.use(express.static(this.docroot))
-        app.use('/admin', [this.ensureAuthenticated, express.static('/admin')])
+        this.app.use(express.static(this.docroot))
+        //this.app.use('/admin', [this.ensureAuthenticated, express.static('/admin')])
         
         
-        app.use(morgan)
-        app.use(express.json());
+        this.app.use(express.json());
 
-        app.use('/user',     this.userService.app)
-        app.use('/item',     this.itemService.app)
-        app.use('/order',    this.orderService.app)
-        app.use('/invoice',  this.paymentService.app)
-        app.use('/validate', this.validationService.app)
+        this.app.use('/user',     this.userService.app)
+        this.app.use('/item',     this.itemService.app)
+        this.app.use('/order',    this.orderService.app)
+        this.app.use('/invoice',  this.paymentService.app)
+        this.app.use('/validate', this.validationService.app)
 
 
          // route definitions
-        app.get('/info',        this.info)
-        app.use(ErrorHandler)
+         this.app.get('/info',        this.info)
+         this.app.use(ErrorHandler)
 
         var server 
         if (this.secure) {
@@ -111,9 +110,9 @@ class Server {
               key: fs.readFileSync(this.security['key']),
               cert: fs.readFileSync(this.security['cert'])
             };
-            server = https.createServer(securityOptions, app)
+            server = https.createServer(securityOptions, this.app)
         } else {
-            server = http.createServer(app)
+            server = http.createServer(this.app)
         }
 
         
@@ -141,10 +140,38 @@ class Server {
         res.status(httpStatus.OK).json(info)
     }
 
-    ensureAuthenticated(req,res,next) {
-        console.log('------------------ ensureAuthenticated ------------- ')
+    
 
-        next()
+    /*
+     * The first middleware checks if request has a named cookie.
+     * If not, if returns http status HttpStatus.UNAUTHORIZED 
+     * else an HttpStatus.OK response.
+     * 
+     * Always returns OK for initail page urls
+     */
+    async getCurrentSession(req,res,next) {
+        if (ENTRY_PAGES.includes(req.url)) {
+            console.log(`no check for entry page ${req.url}`)
+            next()
+            return // IMPORTANT:must call return
+        }
+
+        try {
+            console.log(`${req.originalUrl} parsed ${Object.keys(req.cookies).length} cookies:`)
+            // req.cookies is a dictionary(name:value) are parsed by cookie-parser
+            if (COOKIE_NAME in req.cookies) {
+                console.log(`!found cookie ${COOKIE_NAME} = ${req.cookies[COOKIE_NAME]}`)
+                res.status(httpStatus.OK)
+                next()
+                return
+            } else {
+                console.log(`cookie ${COOKIE_NAME} not found`)
+                res.status(httpStatus.UNAUTHORIZED).end()
+            }
+        } catch (e) {
+            console.error(e)
+            next(e)
+        }
     }
  }
 

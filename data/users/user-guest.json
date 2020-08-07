@@ -1,0 +1,21 @@
+{
+    "id": "guest",
+    "phone": "+91 12345678",
+    "name": "guest",
+    "email": "guest@hiraafood.com",
+    "roles": ["guest"],
+    "addresses" : {
+        "home": {
+            "kind" : "home",
+            "line1": "AA 10/7",
+            "city": "Deshbandhu Nagar",
+            "zip": "70059"
+        },
+        "billing": {
+            "kind" : "billing",
+            "line1": "AA 10/7",
+            "city": "Deshbandhu Nagar",
+            "zip": "70059"
+        }
+    }
+}

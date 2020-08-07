@@ -1,5 +1,8 @@
-
 find-user: 
+    single: true
+    text: SELECT ID FROM USERS WHERE ID=$1
+
+select-user: 
     single: true 
     text: >
         SELECT u.ID, u.NAME, u.PHONE, u.EMAIL, 

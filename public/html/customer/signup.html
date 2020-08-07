@@ -20,16 +20,9 @@
 
 <script type="module">
   import Action         from '../../scripts/action.js'
-  import Wizard         from '../../scripts/forms/wizard.js'
-  import SignupFrom     from '../../scripts/forms/signup-form.js'
-  import CommunicationForm   from '../../scripts/forms/communication-form.js'
-  import AddressForm   from '../../scripts/forms/address-form.js'
+  import SignupWizard   from '../../scripts/forms/signup-wizard.js'
   
-    let wizard = new Wizard()
-    wizard.addPage({title:'Sign up', form:new SignupFrom()})
-    wizard.addPage({title:'Communication preference', form:new CommunicationForm()})
-    wizard.addPage({title:'Set address', form:new AddressForm(), finish:true})
-      
+    let wizard = new SignupWizard()
     wizard.onComplete = (input) => {
         console.log(input)
         let address = {

@@ -23,5 +23,15 @@ select-address-by-kind:
           SELECT ID, KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS
           FROM ADDRESSES 
           WHERE OWNER ilike $1 
-          AND KIND ilike $2
+          AND   KIND ilike $2
+
+select-address-by-id: 
+    single: true
+    text:  >
+          SELECT ID, KIND, OWNER, LINE1, LINE2, CITY, ZIP, TIPS
+          FROM ADDRESSES 
+          WHERE OWNER ilike $1 
+          AND   ID = $2
+
+
 

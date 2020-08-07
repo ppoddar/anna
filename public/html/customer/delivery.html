@@ -14,36 +14,14 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <link rel="stylesheet" href="../../css/hiraafood.css">
-<script>
-    $().ready(function() {
-        $('body').fadeIn(100)
-    })
-    </script>
+
 </head>
 
-<body style='display:none'>
+<body>
   <div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
-
-  <div id='order' class='container-fluid'>
-    <div class='text-center'><h5>Order <span id='order-number'></span></h5></div>
-    <hr class="solid">
-    <div id='order-items'></div>
-    <hr class="solid">
-    <div class='d-flex flex-row no-gutters'>
-      <div class='col flex-grow-1'><b>Total</b></div>
-      <div id='order-total' class='col text-right'></div>
-    </div>
-    <div class='small text-right text-danger'>discounts and tax not applied</div>
-  </div>
-
-  <hr class="solid">
-
   <div class='container-fluid'>
     <p class='text-primary'><b>Select delivery address</b></p>
-    <div class='row'>
-      <ul  id='address-choices'  class='col col-4'></ul>
-      <div id='address-selected' class='col col-8 border bg-primary text-white'></div>
-    </div>
+    <div id='address-control'></div>
   </div>
 
   <hr class="solid">
@@ -56,18 +34,22 @@
   <script type="module">
     import Application    from '../../scripts/app.js'
     import Action         from '../../scripts/action.js'
+    import Address        from '../../scripts/model/address.js'
     import AddressControl from '../../scripts/widgets/address-control.js'
     import Navbar         from '../../scripts/widgets/navbar.js'
 
     $('#navbar').append(new Navbar('Delivery').render())
-    let order = Application.getOrder()
-    console.log('retrieved order from session')
-    console.log(order)
-    $('#order').append(order.render())
-    Action.fetchAddress((err,addresses) => {
+    let user = Application.getCurrentUser(true)
+    Action.getAddresses(user.id, (err,response) => {
+      var addresses = []
+      for (var i = 0; i < response.length; i++) {
+        addresses.push(new Address(response[i]))
+      }
       const addressControl = new AddressControl(addresses)
-      addressControl.render()
+      $('#address-control').append(addressControl.render())
+      
       $('#next').on('click', () => {
+        sessionStorage.setItem('DELIVERY_ADDRESS_ID', addressControl.getSelectedAddressId())
         window.location = './payment.html'
       })
     })

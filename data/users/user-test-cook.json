@@ -1,0 +1,7 @@
+{
+    "id": "cook",
+    "password": "hel1o",
+    "name": "test cook",
+
+    "roles": ["kitchen"]
+}

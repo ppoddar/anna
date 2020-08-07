@@ -4,22 +4,14 @@ class Amount {
 	constructor(value) {
 		this.value = value
 	}
-	render() {
+	render(options) {
 		var $span = $('<span>')
 		$span.addClass('p-2')
-		var html =  this.toCurrency(this.value)
+		var html = (options && options.showCurrencySymbol ? CURRENCY_SYMBOL : '')
+			 + Math.abs(this.value).toFixed(2)
 		$span.html(html)  
 		return $span
 	}
-	
-	
-	toCurrency(v) {
-		var str = (v < 0) ? '-' : ''
-		str += CURRENCY_SYMBOL
-		str += Math.abs(v).toFixed(2)
-		return str
-	}
-	
 }
 
 export default Amount

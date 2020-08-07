@@ -1,5 +1,4 @@
-import WidgetFactory from "../widgets/widget-factory.js"
-
+import WidgetFactory from '../widgets/widget-factory.js'
 const HEADER_STYLES = {
     'info'   : 'bg-primary',
     'warning': 'bg-warning',
@@ -23,7 +22,7 @@ const DEFAULT_OPTIONS = {
  * header. 
  * The actions are hosted in footer.
  * 
- * type property determins style of the header
+ * type property determines style of the header
  */
 class BasicDialog {
     /**
@@ -31,16 +30,16 @@ class BasicDialog {
      * 
      * @param {object} options
      *  id
-     *  title
      *  type
      *  size
      */
-    constructor(options) {
+    constructor(id, options) {
+        console.log(`creating dialog [${id}] ...`)
+        this.id = id
         this.options = Object.assign(DEFAULT_OPTIONS, options)
         this.actions = [] // array of buttons
 
         this.size = MODAL_SIZES[this.options.size]
-
         this.header = undefined
         this.body   = undefined
         this.footer = undefined
@@ -48,18 +47,25 @@ class BasicDialog {
         this.modal  = undefined
     }
 
-    
+    /*
+     * Title of a dialog is title of the form
+     */
     setTitle(title) {
         this.options.title = title
         $('#modal-title').text(title)
 
     }
-    
+    /*
+     * sets the form. A dialog must have a form.
+     * Setting a form, removes any previos form
+     */
     setForm(form) {
         this.form = form
         if (this.body) {
             this.body.empty()
+            this.setTitle(form.getTitle())
             this.body.append(this.form.createBody())
+
         }
     }
     /**
@@ -84,18 +90,20 @@ class BasicDialog {
     }
 
     /**
-     * creates each component (header, body and footer) of a dialog 
+     * creates each component (header, body and footer) of a dialog.
+     * This method is multi-call safe. 
      * subclasses can override to customize look and feel of each part
      */
 	createModal() {
         if (this.modal) return this.modal
-        console.assert(this.form, 'no form')
         this.header = this.createHeader()
+        // body is created by underlying form
         this.body   = this.form.createBody()
+        this.footer = this.createFooter()
         this.body.addClass(`modal-body-${this.size}`)
         this.body.css('overflow-x', 'hidden')
-        this.footer = this.createFooter()
-		var $content = this.$el('<div>', `modal-content`,
+        
+        var $content = this.$el('<div>', `modal-content`,
             [this.header, this.body, this.footer])
         // dialog size is set here
         var $dialog  = this.$el('<div>', 
@@ -104,31 +112,32 @@ class BasicDialog {
         $dialog.css('overflow-x', 'hidden')
         $dialog.attr('role', 'document')
         this.modal   = this.$el('<div>', 'modal', $dialog)
-        this.modal.attr('id', this.options.id)
+        this.modal.attr('id', this.id)
         this.modal.attr('tabindex', "-1")
         this.modal.attr('role', "dialog")
-        this.modal.attr('aria-labelledby', this.options.id)
+        this.modal.attr('aria-labelledby', this.id)
         this.modal.attr('aria-hidden', "true")
 
 		return this.modal
     }
+
+    
     /**
      * creates a  header.
      * Header shows a title and a logo
      */
     createHeader() {
-        if (this.header) return this.header
-
         var $text = $('<h4>')
         $text.attr('id', 'modal-title')
-        $text.text(this.options.title)
+        $text.text(this.form.getTitle())
         $text.css('display', 'inline')
         $text.css('float', 'right')
 
-        var $logo = this.$el('<img>')
+        var $logo = $('<img>')
         $logo.addClass('d-inline')
         $logo.css('float', 'left')
-        $logo.attr('src', '/images/logo.png')
+        let imagePath = (this.options['base'] || '/') + 'images/logo.png'
+        $logo.attr('src', imagePath)
 
         var $close = $('<button>')
         $close.attr('type', 'button')
@@ -139,7 +148,7 @@ class BasicDialog {
 
 
         var $title  = this.$el('<div>', 'modal-title', [$logo, $text])
-        var $header = this.$el('<div>', 'modal-header', $title, $close)
+        var $header = this.$el('<div>', 'modal-header', [$title, $close])
         $header.addClass(HEADER_STYLES[this.options.type])
 
 		return $header
@@ -182,7 +191,7 @@ class BasicDialog {
     createAction(props) {
         //console.log(`creating action from `)
         //console.log(props)
-        console.log(`creating button with ${JSON.stringify(props)}`)
+        //console.log(`creating button with ${JSON.stringify(props)}`)
 
         var $button = WidgetFactory.createButton(props.label, props.type)
         this.actions.push($button)
@@ -193,14 +202,20 @@ class BasicDialog {
         var self = this
 
         $button.on('click', function(evt)  {
-            if (!$(this).attr('validate')) return
+
+            //console.log(`button [${$(this).text()}] is clicked`)
+            if (!$(this).attr('validate')) {
+                //console.log(`form need not to be validated` )
+                return
+            }
             evt.stopPropagation()
             evt.preventDefault()
             //var _this = $(this)
             //console.log(`button [${_this.text()}]  clicked` )
-            self.form.validate((error, valid)=> {
+            //console.log(`form need to be validated` )
+            self.form.validate((error)=> {
                 //console.log(`${this.constructor.name} has received final validation response ${JSON.stringify(message)}`)
-                if (valid) { // call action associated with the button
+                if (!error) { // call action associated with the button
                     props.action.call(null)
                 } // else form will show invalidation error messages
             })

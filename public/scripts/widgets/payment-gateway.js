@@ -1,11 +1,13 @@
+import Action from '../action.js'
 class PaymentGateway {
+	/*
 	constructor() {
 		this.key = {
 			id: 'rzp_test_5GjkKK47NrE4b0',
 			secret: 'kpwjzn4pPpaVdDlXBqmYq5Ku'
 		}
 	}
-
+	*/
 	/**
 	 * pay via payment gateway.
 	 * 
@@ -17,50 +19,35 @@ class PaymentGateway {
 	 * 
 	 * 
 	 */
-	pay(invoice, customer, cb) {
-		var options = this.createRazorPayOptions(invoice, customer, cb)
-		new Razorpay(options).open();
-	}
-	/**
-	 * Creates the options to be passed to payment gateway
-	 */
-	createRazorPayOptions(invoice, customer, cb) {
-		var self = this;
-		var options = {
-			"key": self.key.id,
-			"amount": invoice.payorder.amount_due,
-			"currency": invoice.payorder.currency,
-			"name": "HiraaFood",
-			"description": "best food in town",
-			"image": "/images/logo.png",
-			"order_id": invoice.payorder.id,
-			"prefill": {
-				"name": customer.name,
-				"email": customer.email,
-				"contact": customer.phone
-			},
-			"notes": {
-				"address": "note value"
-			},
-			"theme": {
-				"color": "#3b5998"
-			},
-			/**
-			 * callback on success of payment operation
-			 */
-			"handler": (response) => { this.onPaymentSuccess(response, invoice, cb) },
-			/**
-			 * callback when payment dialog is closed. Razor Pay automatically
-			 * retries on failure.
-			 */
-			"modal": {
-				"ondismiss": () => {
-
-				}
+	pay(invoice,user) {
+		console.log(`opening razorpay for ${invoice.amount}`)
+		Action.getPaymentOptions((err, response)=> {
+			const paymentOptions = response
+			paymentOptions.amount = invoice.amount * 100
+			paymentOptions.currency = "INR"
+			paymentOptions.name = "Hiraafood"
+			paymentOptions.description = "best food in town"
+			paymentOptions.image = "/images/logo.png"
+			paymentOptions.order_id =  invoice.id
+			paymentOptions.prefill = {
+			  "name": user.name,
+			  "email": user.email,
+			  "contact": user.phone
 			}
-		};
-		return options;
+			paymentOptions.theme = {"color": "#3b5998"}			
+			paymentOptions.hanlder = (response) => {
+			  console.log('razorpay response')
+			  console.log(response)
+			}
+			paymentOptions.modal.ondismiss = () => {
+			  console.log('razorpay modal dismiss')
+			}
+			console.log(JSON.stringify(paymentOptions))
+			new Razorpay(paymentOptions).open();
+
+		  })
 	}
+	
 
 	/**
 	 * Razor Pay calls back this function when payment is successful. This

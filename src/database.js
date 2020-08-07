@@ -4,7 +4,6 @@ const path       = require('path')
 const fs         = require('fs')
 const yaml       = require('js-yaml')
 const assert     = require('assert')
-const { type } = require('os')
 
 class Database {
     constructor(options) {
@@ -88,7 +87,7 @@ class Database {
         // ref: https://itnext.io/error-handling-with-async-await-in-js-26c3f20bc06a
         try {
             const q = this.findQuery(name)
-            console.debug(`SQL [${q.name}] parameters [${params}]`)
+            console.debug(`SQL [${q.name}] [${q.text}] parameters [${params}]`)
             let result = await client.query(q.text, params)
             //console.debug(`returns  ${result.rowCount} rows`)
             if (q.single) {

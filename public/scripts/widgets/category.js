@@ -53,7 +53,7 @@ class Category {
 	   this.$itemContainer.empty()
 	   var $list = $('<div>')
 	   $list.addClass('container-fluid')
-	   //console.log('render ' + this.items.length + ' items')
+	   console.log(`render  ${this.items.length} items with cart ${this.cart}`)
 	   for (var i = 0; i < this.items.length; i++) {
 		   var $item = new Item(this.items[i]).render('list')
 		   var $hr = $('<hr>')
@@ -63,6 +63,7 @@ class Category {
 	   this.$itemContainer.append($list)
    }
 
+   
 
 }
 

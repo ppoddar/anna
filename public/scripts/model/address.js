@@ -23,8 +23,10 @@ class Address {
 	/**
 	 * render an address
 	 */
-	render() {
+	render(opts) {
+		let options = opts || {}
 		var $div   = $('<div>')
+		$div.addClass('address')
 		$div.addClass('m-1 p-1')
 		$div.append(
 			this.textLine(this.line1),
@@ -38,7 +40,7 @@ class Address {
 	textLine(text) {
 		if (text) {
 			var $line = $('<p>')
-			$line.css('margin-bottom', '10px')
+			$line.addClass('address-line')
 			$line.text(text)
 			return $line
 		}

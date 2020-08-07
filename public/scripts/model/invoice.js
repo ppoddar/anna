@@ -1,12 +1,7 @@
 import Amount from "../widgets/amount.js"
 import InvoiceItem from './invoice-item.js'
 
-const ITEM_STYLE = {
-    "PRICE"    : "",
-    "DISCOUNT" : "text-success",
-    "TAX"      : "text-danger",
-    
-}
+
 class Invoice {
     constructor(obj) {
         console.log('creating invoice from')
@@ -16,59 +11,21 @@ class Invoice {
         this.created = obj['created']
         this.items   = obj['items']
         this.payorder = obj['payorder']
-        this.billingAddress  = obj['billingAddress'] || null
-        this.deliveryAddress = obj['deliveryAddress'] || null
-        
     }
-    /**
-     * renders as a series of rows.
-     * 
-     */
-
-     /*
-    render(print) {
-        console.log('invoice')
-        console.log(this)
+    render(opts) {
+        let options = opts || {}
+        console.log(`invoice \n ${this}`)
         let $main = $('<div>')
         $main.addClass('container-fluid')
         $main.append(this.renderTitle())
-        if (print) {
+        if (options.print) {
             $main.append(this.renderDate(this.created))
-            $main.append(this.separator())
         }
-        if (print) {
-            var $deliveryAddress = this.renderAddress('deliver to:', this.deliveryAddress)
-            $main.append($deliveryAddress)
-            $main.append(this.separator())
-        }
-        for (var sku in this.items) {
-            var $item = this.renderItem(this.items[sku])
-            $main.append($item)
+        for (var i = 0; i < this.items.length; i++) {
+            $main.append(new InvoiceItem(this.items[i]).render(options))
         }  
         $main.append(this.renderTotal())
-        if (print) {
-            $main.append(this.separator())
-            var $billingAddress  = this.renderAddress('biil to:',   this.billingAddress)
-            if (!this.sameAdress) {
-                $main.append($billingAddress)
-                $main.append(this.separator())
-            } else {
-
-            }
-            //$main.append(this.renderFooter())
-        }
         return $main
-
-    }
-    */
-    render() {
-        $('#invoice-number').text(this.id)
-		for (var sku in this.items) {
-			var li   = new InvoiceItem(this.items[sku])
-			let $row = li.render()
-			$('#invoice-items').append($row)
-		}
-		$('#invoice-total').append(new Amount(this.amount).render())
     }
 
     separator() {
@@ -85,25 +42,25 @@ class Invoice {
     }
 
     renderTitle() {
-        var text = `Order ${this.id}`
-        let $title = this.alignedRow(text,'', false, 'font-weight-bold')
+        let $title = $('<span>')
+        $title.text(this.id)
+        $title.addClass('invoice-title')
         return $title
     }
 
    
     renderTotal() {
-        var $row = this.alignedRow('Total', this.amount, true, 'font-weight-bold','font-weight-bold')
-        $row.css('margin-top', '20px')
-        return $row
+        let total = new InvoiceItem({description:'Total', kind:'TOTAL', amount:this.amount})
+        return total.render()
     }
 
-    renderItem(item) {
-        var amount = ('discount' == item.kind.toLowerCase()) ? -item.amount : item.amount
-        var $row = this.alignedRow(item.description, amount, true, ITEM_STYLE[item.kind])
-        $row.css('margin-bottom', '-20px')
+    // renderItem(item) {
+    //     var amount = ('discount' == item.kind.toLowerCase()) ? -item.amount : item.amount
+    //     var $row = this.alignedRow(item.description, amount, true, ITEM_STYLE[item.kind])
+    //     $row.css('margin-bottom', '-20px')
         
-        return $row
-    }
+    //     return $row
+    // }
 
     /**
      * create a row with two columns.
@@ -142,7 +99,7 @@ class Invoice {
         }
 
         return $row    
-    }
+    } 
 
     renderAddress(label, addr) {
         if (addr) {

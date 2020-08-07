@@ -2,50 +2,78 @@ const httpStatus = require('http-status-codes')
 const SubApplication = require('./sub-app')
 const AuthenticationError = require('./errors').AuthenticationError
 
-let COOKIE = 'hiraafood'
-let LOGIN_PAGE = '/login.html'
+var cookie = require('cookie');
+const cookieParser = require('cookie-parser')
+const COOKIE_NAME = 'hiraafood'
+
+const GUEST_USER = {id:'guest', role:'customer'}
 
 class UserService extends SubApplication {
-    constructor(db,options) {
-        super(db,options)
-        this.app.post('/create', this.createUser.bind(this))
-        this.app.post('/login',  this.login.bind(this))
-        this.app.post('/loginAsGuest', this.loginAsGuest.bind(this))
-        this.app.post('/relogin', this.relogin.bind(this))
-        this.app.get('/address', this.getAddress.bind(this))
-        this.app.get('/addresses', this.getAddresses.bind(this))
-        this.app.post('/address', this.createAddress.bind(this))
+    static RESERVED_USERS = ['admin', 'guest']
+    constructor(db, options) {
+        super(db, options)
+        this.app.post('/:uid',       this.createUser.bind(this))
+        this.app.get('/:uid',        this.getUser.bind(this))          // gets complete user information
+        this.app.get('/:uid/exists', this.findUser.bind(this))  // only 200 or 404 status
+
+        this.app.post('/:uid/login', this.login.bind(this))
+
+        this.app.get('/:uid/addresses', this.getAddresses.bind(this))
+        this.app.get('/:uid/address-by-kind/:kind', this.getAddressByKind.bind(this))
+        this.app.get('/:uid/address-by-id/:id', this.getAddressById.bind(this))
+
+        this.app.post('/:uid/address', this.createAddress.bind(this))
+
+        this.populate()
+    }
+
+    async findUser(req, res, next) {
+        try {
+            const user = await this.db.executeSQL('find-user', [req.params.uid])
+            res.status(user == null ? httpStatus.NOT_FOUND : httpStatus.OK).end()
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async getUser(req, res, next) {
+        try {
+            let user = await this.db.executeSQL('select-user', [req.params.uid])
+            res.status(httpStatus.OK).json(user)
+        } catch (e) {
+            next(e)
+        }
     }
 
     /*
      */
-    async authorize(req,res,next) {
-        console.log(`==========> authorize ${req.url} user=${req.user}`)
-        if (req.url == '/' || req.url == '/index.html' || req.url == LOGIN_PAGE) {
-            next()
-            // must call return
-            return
-        }
+    async authorize(req, res, next) {
         if (req.session.user) {
             next()
             return
         }
         console.log(`redicting to ${LOGIN_PAGE}`)
         return res.redirect(LOGIN_PAGE)
-        
     }
 
+    /*
+     * 
+     * callbak signature fn(err, status, user)
+     */
     async authenticate(uid, pwd, callabck) {
+        console.log(`authenticate ${uid}`)
         let user = await this.db.executeSQL('find-user', [uid])
         if (!user) {
-            callabck.call(null, new AuthenticationError('user-not-found', [uid]))
+            console.log(`authenticate: no user found ${uid}`)
+            callabck.call(null, new Error(`no user ${uid} found`), httpStatus.NOT_FOUND, null)
         } else {
+            user = await this.db.executeSQL('select-user', [uid])
             user.roles = user.roles.split(',')
             let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
             if (!row) {
-                callabck.call(null, new AuthenticationError('wrong-password', [uid] ))
+                callabck.call(null, new Error(`wrong-password for ${uid}`), httpStatus.FORBIDDEN, null)
             } else {
-                callabck.call(null, null, user)
+                callabck.call(null, null, httpStatus.OK, user)
             }
         }
     }
@@ -57,19 +85,24 @@ class UserService extends SubApplication {
      */
     async login(req, res, next) {
         try {
+            if (req.params.uid == GUEST_USER.id) {
+                await this.loginAsGuest(req,res,next)
+                return
+            }
             const creds = this.extractAuthrozationHeader(req, res)
             const uid = creds.username
             const pwd = creds.password
-            await this.authenticate(uid,pwd, (err,user)=> {
-                console.log(`authenticate callback has received error ${err} user=${user}`)
-                if (!err) {
-                    req.session.regenerate(function(){
-                        req.session.user = user
-                        res.cookie(COOKIE, JSON.stringify({id:req.session.id,user:user}))
-                        res.status(httpStatus.OK).json(user)
+            console.log(`login user ${uid}`)
+            await this.authenticate(uid, pwd, (err, status, user) => {
+                if (err == null) {
+                    const ctx = this
+                    req.session.regenerate(function () {
+                        ctx.newSession(user, req, res)
                     })
                 } else {
-                    res.status(httpStatus.FORBIDDEN).json({message:err})
+                    console.error(`authenticate callback has received error ${err} status=${status} user=${user}`)
+                    res.status(status).json({ message: err })
+
                 }
             })
         } catch (e) {
@@ -78,31 +111,26 @@ class UserService extends SubApplication {
         }
     }
 
-
-    async relogin(req, res, next) {
+      async loginAsGuest(req, res, next) {
         try {
-            let authToken = req.headers['x-auth-token']
-            let session = await this.findSession(authToken)
-            if (!session) {
-                throw new AuthenticationError('no-seesion', [authToken])
-            }
-            res.status(httpStatus.OK).json(session)
+            const ctx = this
+            req.session.regenerate(function () {
+                ctx.newSession(GUEST_USER, req, res)
+            })
         } catch (e) {
             next(e)
         }
     }
 
-    async loginAsGuest(req, res, next) {
-        try {
-            const guest = { id: 'guest', home: 'customer' }
-            req.session.user = guest
-            res.cookie(COOKIE, {id:0})
-            res.status(httpStatus.OK).json(guest)
-        } catch (e) {
-            next(e)
-        }
+    newSession(user, req, res) {
+        const session_id = req.session.id
+        user.session = session_id
+        console.log(`regenerate cookie for user [${user.id}] session id=${session_id}`)
+        res.cookie(COOKIE_NAME, { user: user })
+        res.status(httpStatus.OK).json(user)
     }
 
+  
 
     extractAuthrozationHeader(req, res) {
         if (!req.headers.authorization) {
@@ -120,7 +148,23 @@ class UserService extends SubApplication {
      * TODO:
      * @param {} user  must have one or more addressses
      */
-    async createUser(user) {
+    async createUser(req, res, next) {
+        try {
+            if (this.isReservedUser(req.params.uid)) {
+                res.status(httpStatus.BAD_REQUEST)
+                    .json({message:`${req.params.uid} is reserved user name`}).end()
+            }
+            let user = this.postBody(req)
+            await this.newUser(user)
+            delete user['password']
+            res.status(httpStatus.OK).end()
+        } catch (e) {
+            next(e)
+        }
+    }
+
+
+    async newUser(user) {
         let txn = await this.db.begin()
         var params = [user.id, user.name, user.email, user.phone, user.password]
         await this.db.executeSQLInTxn(txn, 'insert-user', params)
@@ -135,11 +179,9 @@ class UserService extends SubApplication {
             await this.db.executeSQLInTxn(txn, 'insert-user-role', [user.id, user.roles[i]])
         }
         await this.db.executeSQLInTxn(txn, 'insert-user-page', [user.id, page])
+
+
         this.db.commit(txn)
-
-        delete user['password']
-
-        return user
     }
 
     // --------------------------------------------------------------------------
@@ -151,9 +193,8 @@ class UserService extends SubApplication {
      */
     async createAddress(req, res, next) {
         try {
-            const uid = this.queryParam(req, res, 'uid')
-            const addr = this.postBody(req, res)
-            let params = [addr.kind, uid, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
+            const addr = this.postBody(req)
+            let params = [addr.kind, req.params.uid, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
             const address = await this.db.executeSQL('upsert-address', params)
             res.status(httpStatus.OK).json(address)
         } catch (e) {
@@ -162,29 +203,68 @@ class UserService extends SubApplication {
     }
     /**
      * get all addresses 
-     * @returns set of addresses indexed by kind for given user identifier
+     * @returns array of addresses
      */
     async getAddresses(req, res, next) {
         try {
-            const user = this.queryParam(req, 'uid')
-            let rs = await this.db.executeSQL('select-all-address', [user])
-            var addresses = []
-            //console.log(`got ${rs.length} rows`)
-            for (var i = 0; i < rs.length; i++) {
-                const address = rs[i]
-                addresses.push(address)
-            }
+            let addresses = await this.db.executeSQL('select-all-address', 
+                [req.params.uid])
             res.status(httpStatus.OK).json(addresses)
         } catch (e) {
             next(e)
         }
     }
 
-    async getAddress(req, res, next) {
-        const user = this.queryParam(req, res, 'uid')
-        const kind = this.queryParam(req, res, 'kind')
-        const address = await this.db.executeSQL('select-address-by-kind', [user, kind])
-        res.status(httpStatus.OK).json(address)
+    async getAddressByKind(req, res, next) {
+        try {
+            const address = await this.db.executeSQL('select-address-by-kind', 
+                [req.params.uid, req.params.kind])
+            res.status(httpStatus.OK).json(address)
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async getAddressById(req, res, next) {
+        try {
+            const address = await this.db.executeSQL('select-address-by-id', 
+                [req.params.uid, req.params.id])
+            res.status(httpStatus.OK).json(address)
+        } catch (e) {
+            next(e)
+        }
+    }
+
+    async existsUser(uid) {
+        let row = await this.db.executeSQL('find-user', [uid])
+        //console.log(`result of [find-user] ${row}`)
+        return row != null
+    }
+
+    async populate() {
+        var fs = require('fs')
+        var path = require('path')
+        var yaml = require('js-yaml')
+        var data_dir = path.join(__dirname, '../data/users')
+        //console.log(`data directory ${data_dir}`)
+        if (fs.existsSync(data_dir)) {
+            //console.log(`populating users from ${data_dir}`)
+            var files = fs.readdirSync(data_dir, { withFileTypes: true })
+            for (var i = 0; i < files.length; i++) {
+                const file = files[i]
+                if (file.isDirectory()) continue
+                //console.log(`populating user from ${file.name}`)
+                const file_path = path.join(__dirname, '../data/users', file.name)
+                let fileContents = fs.readFileSync(file_path, 'utf8');
+                let user = yaml.safeLoad(fileContents);
+                if (! await this.existsUser(user.id)) {
+                    console.log(`saving user ${user.id} from ${file_path}`)
+                    this.newUser(user)
+                } else {
+                    //console.log(`user ${user.id} exists`)
+                }
+            }
+        }
     }
 
 }

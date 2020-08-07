@@ -80,8 +80,8 @@ class Item {
 		$col2.addClass('col')
 		$row.append($col1, $col2)
 		if ('list' === view) {
-			$col1.append($img, $price, $rating, $orderButton)
-			$col2.append($title, $category, $tags)
+			$col1.append($img, $price, $rating)
+			$col2.append($title, $category, $tags,  $orderButton)
 			return $row
 		} else if ('form' === view) {
 			$col1.append($img, $price, $rating)

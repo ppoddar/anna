@@ -1,6 +1,7 @@
 import Counter     from '../widgets/counter.js';
 import BasicDialog from './basic-dialog.js';
 import Application from '../app.js'
+import Cart 	   from '../model/cart.js'
 
 const MAX_ROWS = 4
 const MAX_COLS = 40
@@ -10,7 +11,7 @@ const MAX_LENGTH = MAX_ROWS * MAX_COLS;
  */
 class OrderForm extends BasicDialog {
 	constructor(item) {
-		super()
+		super('ordr-item-dialog')
 		this.item  = item
 		this.$counter = new Counter()
 		this.$comment = this.createCommentSection()
@@ -86,9 +87,10 @@ class OrderForm extends BasicDialog {
 		var $addItem = $('<button>')
 		$addItem.text('add')
 		$addItem.addClass('btn btn-primary')
+		// gets Cart from DOM
+		var cart = $('#cart').data('cart')
 		$addItem.on('click', () => {
 			this.$dialog.modal('hide')
-			let cart = Application.getCart()
 			cart.addLineItem(this.item, this.$counter.val(), this.$comment.val())
 		})
 

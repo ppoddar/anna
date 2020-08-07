@@ -27,9 +27,8 @@ $().ready(function() {
   $('body').fadeIn(100)
   $(document).ajaxSend(function(evet, xhr, settings){
     console.log('------------------------------------------')
-    console.log(`${settings.method} ${settings.url}`)
+    console.log(`${settings.method||'GET'} ${settings.url}`)
     console.log('------------------------------------------')
-
   })
 })
 </script>
@@ -58,12 +57,11 @@ $().ready(function() {
   
 
 <script type="module">
+  import Application from './scripts/app.js'
 
-import Application from './scripts/app.js'
-
-$('#enter').on('click', () => {
-  Application.open()
-})
+  $('#enter').on('click', function() {
+      Application.open()
+  })
  
 
   

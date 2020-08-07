@@ -1,0 +1,7 @@
+{
+    "id": "packer",
+    "password": "hel1o",
+    "name": "test packer",
+
+    "roles": ["packing"]
+}

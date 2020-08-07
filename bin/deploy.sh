@@ -7,7 +7,8 @@ cat << EOF
        --remote      installs remotely. Defaults false
        --secure      uses https protocol. Defaults false.
        --db          initializes database. Defaults false
-       -p            listening port. Required
+       --pwd         asks for a admin password. 
+       -p            listening port.
        -h|-?|--help  print this help message and exit
 EOF
 }
@@ -102,33 +103,30 @@ function stop_process {
 
 pushd $HOME_DIR >&-
 
-if [[ $REMOTE -eq 1 ]];then
-    package
-    scp -i $PEM    $ZIPFILE $DEPLOY_ROOT/$ZIPFILE
-    ssh -T -i $PEM $REMOTE_USER@$REMOTE_HOST << EOSSH
-        cd $REMOTE_DIR
-        unzip -q -u -X -o $ZIPFILE
-        pkill -f $APP
-        source ./database/setup-database.sh
-        npm -q -g --no-package-lock install
-        nodemon --trace-uncaught --title=$APP app.js -- -p 8443 --secure
-        ln -f -v -s hiraafood.log ./public/admin/hiraafood.log 
-EOSSH
-
 else  # local deployment
 COLOR_RED='\033[0;31m'
 COLOR_GREEN='\033[0;32m'
+COLOR_YELLOW='\033[0;33m'
 COLOR_RESET='\033[0m' # No Color
-    if [ -z $PORT ]; then
-        echo -e ${COLOR_RED} ***ERROR: no port specified for local deployment.${COLOR_RESET} Use -p option
+if [[ $DATABASE -eq 1 ]]; then
+    echo -e ${COLOR_GREEN} setting up  database.${COLOR_RESET}
+    pushd ./database >> /dev/null
+    ./deploy-database.sh $ASK_PASSWORD
+    if [[ $? -ne 0 ]]; then
+        echo -e ${COLOR_RED} ***ERROR: error setting up  database.${COLOR_RESET}
         exit 1
+    fi
+    popd >&-
+fi
+
+    if [ -z $PORT ]; then
+        #echo -e ${COLOR_YELLOW} ***WARN: no port specified for local deployment. Exiting...${COLOR_RESET}
+        exit 0
     fi
     echo --------------------------------------------------------------
     echo -e ${COLOR_GREEN}     deploying $APP application  ${COLOR_RESET} 
     echo --------------------------------------------------------------
-    if [[ $DATABASE -eq 1 ]]; then
-        source ./database/deploy-database.sh $ASK_PASSWORD
-    fi
+    
     echo kill node process named $APP and listening on port $PORT
     ps -ef | grep nodemon | grep -v grep | awk '{print $2}' | xargs kill -9
     lsof -nP -iTCP:$PORT  | grep node    | awk '{print $2}' | xargs kill -9
@@ -143,5 +141,19 @@ COLOR_RESET='\033[0m' # No Color
     # running in baclground will exit this shell script
     nodemon $NODE_OPTIONS $APPLICATION -- $APPLICATION_ARGS &
 fi
+
+
+if [[ $REMOTE -eq 1 ]];then
+    package
+    scp -i $PEM    $ZIPFILE $DEPLOY_ROOT/$ZIPFILE
+    ssh -T -i $PEM $REMOTE_USER@$REMOTE_HOST << EOSSH
+        cd $REMOTE_DIR
+        unzip -q -u -X -o $ZIPFILE
+        pkill -f $APP
+        source ./database/setup-database.sh
+        npm -q -g --no-package-lock install
+        nodemon --trace-uncaught --title=$APP app.js -- -p 8443 --secure
+        ln -f -v -s hiraafood.log ./public/admin/hiraafood.log 
+EOSSH
 
 popd >&-

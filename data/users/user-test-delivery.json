@@ -1,0 +1,7 @@
+{
+    "id": "delivery",
+    "password": "hel1o",
+    "name": "test delivery",
+
+    "roles": ["delivery"]
+}

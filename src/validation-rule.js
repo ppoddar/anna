@@ -1,5 +1,5 @@
-const CharacterType   = require('./char-type')
-const ValidationError = require('./errors').ValidationError
+const CharacterGroup  = require('./char-group.js')
+
 /*
  * String must have a mnimum length
  */
@@ -9,7 +9,9 @@ class MinimumLengthRule {
     }
     apply(str) {
         if (str.length < this.minLength) {
-            throw new ValidationError(`must have at least ${this.minLength} charcters`)
+            const msg = `must have at least ${this.minLength} characters`
+            //console.log(`***Validation Error: ${this.constructor.name} [${str}]  ${msg}`)
+            throw new Error(msg)
         } 
     }
 }
@@ -17,67 +19,66 @@ class MinimumLengthRule {
 /*
  * String must have each type of characters 
  */
-class StringCharacterTypeRule {
-    constructor(counts) {
+class CharacterGroupRule {
+    /*
+     * @param counts a dictionary(character group:minimum number)
+     */
+    constructor(min, counts) {
         this.counts = counts
+        this.compareMin = min
     }
     apply(str) {
-        actualCounts = CharcterType.countCharacterTypes(str)
-        for (t in this.counts) {
-            const m      = this.counts[t]
-            const actual = actualCounts[t]
-            if (actual < m) {
-                throw new ValidationError(`has ${actual} character of type ${t}. Mimimum ${m} must be present `)
+        const actualCounts = CharacterGroup.groupCount(str)
+        for (var group in this.counts) {
+            const expeceted = this.counts[group]
+            const actual  = actualCounts[group]
+            if (this.compareMin) {
+                if (actual > expeceted) {
+                    const msg = `${group} must have at most ${expeceted} character, but has ${actual}`
+                    throw new Error(msg)
+                }
+            } else {
+                if (actual < expeceted) {
+                    const msg = `${group} must have at least ${expeceted} character, but has ${actual}`
+                    throw new Error(msg)
+                }
             }
-
         }
 
     }
 }
-class CharacterTypeRule {
-    constructor(pos, type) {
-        this.pos = pos
-        this.type = type
-    }
-    
+class UnknownCharacterRule {
     apply(str) {
-        let ch = str.charAt(this.pos)
-        if (CharacterType.of(ch) != this.type) {
-            throw new ValidationError(`${ch} at ${this.pos} must be of ${this.type} type`)
+        for (var i = 0; i < str.length; i++) {
+            const ch = str.charAt(i)
+            const group = CharacterGroup.of(ch)
+            if (!group) {
+                const msg = `[${ch}] at ${i}-th position is not allowed`
+                console.log("=========================")
+                console.log(msg)
+                console.log("=========================")
+                throw new Error(msg)
+            }
         }
     }
 }
 
-class MinimumCharacterTypeCountRule {
-    constructor(count, type) {
-        this.mincount = count
-        this.type     = type;
-    }
+class FirstCharacerLowerCaseRule {
     apply(str) {
-        var counts = CharacterType.countTypes(str)
-        if (counts[this.type] < this.mincount) {
-            throw new ValidationError(`must have at least ${this.mincount} ${this.type} characters`)
+        let ch = str.charAt(0)
+        if (ch.toLowerCase() != ch) {
+            const msg = `first character [${ch}] must be lowercase`
+            throw new Error(msg)
         }
     }
 }
 
-class MaximumCharacterTypeCountRule {
-    constructor(count, type) {
-        this.maxcount = count
-        this.type     = type;
-    }
-    apply(str) {
-        var counts = CharacterType.countTypes(str)
-        if (counts[this.type] > this.maxcount) {
-            throw new ValidationError(`must have less than ${this.maxcount} ${this.type} character(s)`)
-        }
-    }
-}
+
+
 
 module.exports = {
-    CharacterTypeRule: CharacterTypeRule,
-    MaximumCharacterTypeCountRule: MaximumCharacterTypeCountRule,
-    MinimumCharacterTypeCountRule: MinimumCharacterTypeCountRule,
+    CharacterGroupRule: CharacterGroupRule,
     MinimumLengthRule: MinimumLengthRule,
-    StringCharacterTypeRule: StringCharacterTypeRule
+    FirstCharacerLowerCaseRule: FirstCharacerLowerCaseRule,
+    UnknownCharacterRule:UnknownCharacterRule
 }

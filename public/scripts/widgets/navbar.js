@@ -1,12 +1,21 @@
 import Application from '../app.js'
+
 /**
- * populates a navigation bar
+ * populates a navigation bar.
+ * Navigation bar shows a title for current page
+ * and houses common actions 
  */
 class Navbar {
 	constructor(title) {
 		this.title = title
 		this.dropdowns = []
+
+		this.addDropdownItem({label:'logout',   action: Application.logout.bind(this)})
+		this.addDropdownItem({label:'settings', action: ()=>{
+
+		}})
 	}
+
 	addDropdownItem(props) {
 		let $item = $('<div>')
 		$item.addClass('dropdown-item')
@@ -14,6 +23,7 @@ class Navbar {
 		$item.on('click', props.action)
 		this.dropdowns.push($item)
 	}
+
 	/**
 	 * creates a navigation bar with menu items
 	 * and dropdowns

@@ -1,12 +1,11 @@
-import Application   from '../app.js'
-import OrderItem      from './order-item.js'
-
+import OrderItem from './order-item.js'
 /**
  * cart contains a set of lineitems indexed by Item sku.
+ * it is attached to a DOM element
  */
 class Cart {
-    constructor(obj) {
-		this.items = obj['items'] || {}
+    constructor() {
+		this.items = {}
 	}
 
 	isEmpty() {
@@ -16,7 +15,6 @@ class Cart {
 	
 	/**
 	 * adds/updates a order item.
-	 * not synced to server. but refreshes session storage
 	 */
     addLineItem(item, units, comment) {
 		let sku = item.sku
@@ -34,10 +32,7 @@ class Cart {
 				units:units, 
 				comment:comment})
         }
-		Application.saveCart(this)
-		$('#cart').trigger('click')
-		//$('#checkout').attr('disabled', false)
-
+		$('#cart').trigger('click') // updates the view
         return this
     }
 
@@ -48,11 +43,10 @@ class Cart {
 	 */
 	render() {
 		let $main = $('<div>')
-		
 		if (this.isEmpty()) {
 			let $label = $('<label>')
 			$label.text('empty')
-			$label.addClass('text-danger')
+			$label.addClass('text-muted')
 			$main.append($label)
 		} else {
 			for (var sku in this.items) {
@@ -68,7 +62,6 @@ class Cart {
 		let addButton = this.createButton('&plus;', 'text-success')
 		addButton.on('click', ()=>{
 			li.units += 1
-			Application.saveCart(this)
 		 	$('#cart').trigger('click')
 		})
 
@@ -76,14 +69,12 @@ class Cart {
 		reduceButton.attr('disabled', li.units>1)
 		reduceButton.on('click', ()=>{
 			li.units -= 1
-			Application.saveCart(this)
 		 	$('#cart').trigger('click')
 		})
 
 		let removeButton = this.createButton('&cross;', 'text-danger')
 		removeButton.on('click', ()=>{
 			delete this.items[li.sku]
-			Application.saveCart(this)
 		 	$('#cart').trigger('click')
 		})
 

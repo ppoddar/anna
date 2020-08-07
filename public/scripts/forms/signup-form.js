@@ -3,7 +3,7 @@ import BasicForm    from './basic-form.js'
 
 class SignupForm extends BasicForm {
 	constructor(dialog) {
-        super(dialog)
+        super(dialog, {title:'Sign Up'})
         let $autocomplete = $('<input>')
         $autocomplete.attr('autocomplete', 'off')
         $autocomplete.attr('name', 'hidden')

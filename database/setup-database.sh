@@ -9,15 +9,12 @@
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-DATABASE=${1:-anna}
+DATABASE=anna
 USER=postgres
 
 
 echo defining database schema to $DATABASE database...
 psql -q -d $DATABASE -U $USER -f $DIR/close-connection.sql > /dev/null
-#psql -U $USER -c 'drop database '$DATABASE
-#psql -U $USER -c 'create database '$DATABASE
-
 psql -q -d $DATABASE -U $USER  -f $DIR/ANNA-SCHEMA.sql
 psql -q -d $DATABASE -U $USER  -f $DIR/seed-database.sql
 # --------------------------------------------------
@@ -31,4 +28,5 @@ if test -f $ADMIN_USER_SQL; then
    rm $ADMIN_USER_SQL
 else
    echo WARNING: admin user not defined. Not found file $ADMIN_USER_SQL
+   exit 1
 fi

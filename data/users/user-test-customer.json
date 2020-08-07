@@ -1,0 +1,22 @@
+{
+    "id": "tester",
+    "password": "hel1o",
+    "name": "test user",
+    "phone": "+91 12345678",
+    "email": "tester@hiraafood.com",
+    "roles": ["customer"],
+    "addresses" : {
+        "home": {
+            "kind" : "home",
+            "line1": "AA 10/7",
+            "city": "Deshbandhu Nagar",
+            "zip": "70059"
+        },
+        "billing": {
+            "kind" : "billing",
+            "line1": "AA 10/7",
+            "city": "Deshbandhu Nagar",
+            "zip": "70059"
+        }
+    }
+}

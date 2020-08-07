@@ -7,6 +7,7 @@ const SubApplication = require('./sub-app')
 class PricingService extends SubApplication{
     constructor(database,options) {
         super(database,options)
+        this.prices = {}
     }
     /**
      * computes discount on given lineitem
@@ -16,9 +17,9 @@ class PricingService extends SubApplication{
      * 
      * @returns null if no discount
      */
-    computeDiscount(lineitem, user) {
+    async computeDiscount(lineitem, user) {
         // TODO: apply discount rules
-        return 
+        return null
     }
 
     /**
@@ -29,20 +30,32 @@ class PricingService extends SubApplication{
      * 
      * @returns 
      */
-    computePrice(li, user) {
-        var amount = this.toAmount(li.units * li.price)
+    async computePrice(li, uid) {
+        var p
+        if (li.sku in this.prices) {
+            p = this.prices[li.sku]
+            console.log(`${this.constructor.name} item ${li.sku} price ${p}`)
+        } else {
+            console.log(`${this.constructor.name} fecth item ${li.sku}`)
+            const item = await this.itemService.findItem(li.sku);
+            p = item.price
+            console.log(`${this.constructor.name} item ${item.sku} price ${p}`)
+            this.prices[item.sku] = p
+        }
+        var amount = this.toAmount(li.units * p)
+        console.log(`${this.constructor.name} compute price ${li.sku} price ${amount}`)
         return {name: li.name, amount: amount}
     }
 
     /**
-     * computes price on given lineitem
+     * computes tax on total price
      * 
      * @param {} lineitem 
      * @param {*} user 
      * 
-     * @returns 
+     * @returns an array of taxes 
      */
-    computeTax(amount) {
+    async computeTax(amount) {
         var taxRate = 7
         var salesTax = this.toAmount(amount * taxRate *0.01);
         return [{name: `sales tax @${taxRate}%`, amount: salesTax}]

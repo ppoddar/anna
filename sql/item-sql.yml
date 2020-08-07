@@ -69,7 +69,7 @@ insert-item:
 
 insert-rating: 
   text: >
-    INSERT INTO RATINGS (WHO,WHAT,CREATED,RATING,COMMENT)
+    INSERT INTO RATINGS (WHO,WHAT,CREATED_AT,RATING,COMMENT)
     VALUES ($1, $2, NOW(), $3, $4)
 
 select-item-tags: 

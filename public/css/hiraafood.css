@@ -271,6 +271,37 @@ table thead th {
 
 }
 
+.invoice-title {
+	font-weight: bold;
+	font-size: 1.2em;
+	text-align: center;
+	border-bottom: 1px solid black;
+	display: block;
+
+}
+.invoice-item {
+	margin-bottom: -10px;
+	font-size:0.8em;
+}
+
+.invoice-total {
+	font-weight: bold;
+	border-top: 1px solid black;
+	display: block;
+}
+
+.address {
+	background-color: gainsboro;
+}
+
+.address-line {
+	margin-bottom : 10px;
+	font-size: 0.8em;
+}
 @media (min-width: 576px) {
 	.modal-dialog { max-width: none; }
 }
+
+
+
+

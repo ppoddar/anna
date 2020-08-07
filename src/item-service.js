@@ -7,6 +7,8 @@ class ItemService extends SubApplication {
         this.app.post('/',      this.createItem.bind(this))
         this.app.get('/',       this.findItem.bind(this))
         this.app.get('/catalog', this.getCatalog.bind(this))
+        
+        this.populate()
 
     }
     async getCatalog(req,res,next) {
@@ -34,29 +36,55 @@ class ItemService extends SubApplication {
 
     async createItem(req,res,next) {
         try {
-            var item = this.postBody(req, res, false)
-            let txn = await this.db.begin()
-            await this.db.executeSQLInTxn(txn, 'insert-item', [item.sku, item.name, item.category, item.description, item.price, item.image])
-            for (var i = 0; item.tags && i < item.tags.length; i++) {
-                await this.db.executeSQLInTxn(txn, 'add-item-tag', [item.sku, item.tags[i]])
-
-            }
-            // TODO: rating
-            let rating = 3
-            await this.db.executeSQLInTxn(txn, 'insert-rating', ['admin', item.sku, rating, 'initial'])
-            this.db.commit(txn)
+            var item = this.postBody(req, false)
+            await this.newItem(item)
             res.status(httpStatus.OK).json({message:`created item ${item.sku}`})
         } catch(e) {
             next(e)
         }
     }
-    
+
+    async newItem(item) {
+        let txn = await this.db.begin()
+        await this.db.executeSQLInTxn(txn, 'insert-item', [item.sku, item.name, item.category, item.description, item.price, item.image])
+        for (var i = 0; item.tags && i < item.tags.length; i++) {
+            await this.db.executeSQLInTxn(txn, 'add-item-tag', [item.sku, item.tags[i]])
+
+        }
+        // TODO: rating
+        let rating = 3
+        await this.db.executeSQLInTxn(txn, 'insert-rating', ['admin', item.sku, rating, 'initial'])
+        this.db.commit(txn)
+
+    }
 
     async existsItem(sku) {
         let row = await this.db.executeSQL('exists-item', [sku])
-        return row
+        return row != null
     }
     
+    async populate() {
+        var fs = require('fs')
+        var path = require('path')
+        var yaml = require('js-yaml')
+        var data_dir = path.join(__dirname, '../data/items')
+        //console.log(`data directory ${data_dir}`)
+        if (fs.existsSync(data_dir)) {
+            console.log(`populating items from ${data_dir}`)
+            var files = fs.readdirSync(data_dir, {withFileTypes:true})
+            for (var i = 0; i < files.length; i++) {
+                const file = files[i]
+                if (file.isDirectory()) continue
+                //console.log(`populating item from ${file.name}`)
+                const file_path = path.join(__dirname, '../data/items', file.name)
+                let fileContents = fs.readFileSync(file_path, 'utf8');
+                let item = yaml.safeLoad(fileContents);
+                if (! await this.existsItem(item.sku)) {
+                    console.log(`saving item ${item.sku}:${item.name} from `)
+                    this.newItem(item)
+                }
+        }
+    }}
    
 }
 
