@@ -12,7 +12,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 DATABASE=anna
 USER=postgres
 
-
 echo defining database schema to $DATABASE database...
 psql -q -d $DATABASE -U $USER -f $DIR/close-connection.sql > /dev/null
 psql -q -d $DATABASE -U $USER  -f $DIR/ANNA-SCHEMA.sql

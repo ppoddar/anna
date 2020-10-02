@@ -1,14 +1,17 @@
 const express           = require('express')
 const httpStatus        = require('http-status-codes')
 const InputError        = require('./errors').InputError
+const logger            = require('./logger')
 
 class SubApplication {
     constructor(db, options) {
         this.db      = db
         this.app     = express()
         this.options = options || {}
-        console.log(`\x1b[36m \u2713 created ${this.constructor.name} service \x1b[0m`)
+        logger.info(`created ${this.constructor.name} service`)
+        //if (this.validateService) this.validateService.call(null)
     }
+
     /*
      * payload of a POST request.
      * Errors are thrown with a code and and array of content variables
@@ -19,10 +22,10 @@ class SubApplication {
                 throw new InputError('payload-not-array')
             } 
             const payload = req.body
-            console.log(`payload POST ${req.url}\n ${JSON.stringify(payload)}`)
+            console.log(`payload POST ${req.originalUrl}\n ${JSON.stringify(payload)}`)
             return payload
         } else {
-            new InputError('payload-not-array')
+            new InputError('payload-not-present')
         }
     }
 
@@ -31,7 +34,7 @@ class SubApplication {
     queryParam(req, p, def) {
         if (p in req.query){
             return req.query[p]
-        } else if (def) {
+        } else if (def != undefined) {
             return def
         } else {
             throw new InputError('missing-query-param', 
@@ -39,7 +42,11 @@ class SubApplication {
         }
     }
 
-    
+    badRequest(req,res,err) {
+        console.log(`***ERROR: ${req.originalUrl} ${err.message}`)
+        console.error(err)
+        res.status(httpStatus.BAD_REQUEST).json({message:err.message})
+    }
 }
 
 module.exports = SubApplication

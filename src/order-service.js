@@ -1,12 +1,25 @@
 const httpStatus = require('http-status-codes')
 const SubApplication = require('./sub-app')
+const ItemController = require('./item-controller')
+const OrderController = require('./order-controller')
+const PriceController = require('./price-controller')
 
+/*
+ * Service is web-facing component in this architecture.
+ * A service uses one or more controller.
+ * A controller is databse-facing, not  web-facing.
+ * 
+ * This OrderService uses ItemController
+ */
 class OrderService extends SubApplication{
 
     constructor(database,options) {
         super(database,options)
-
-        this.app.post('/:uid', this.createOrder.bind(this))
+        this.orderController = new OrderController(database)
+        this.itemController  = new ItemController(database)
+        this.priceController = new PriceController(database)
+        this.app.post('/:uid',     this.createOrder.bind(this))
+        //this.app.get('/find/:oid', this.getOrder.bind(this))
     }
 
     /**
@@ -30,36 +43,13 @@ class OrderService extends SubApplication{
         try {
             var lineitems = this.postBody(req, true)
             var uid   = req.params.uid
-            //console.debug(`createOrder  uid=${uid}`)
-            let txn    = await this.db.begin()
-            let result = await this.db.executeSQL('insert-order', [uid])
-            let order  = {id:result['id'].toString(), user: result['user_id'],
-                created: result['created'], time_offset: result['time_offset'],
-                status : result['status']}
-            console.debug(`database order create returned [${JSON.stringify(order)}]`)
-            order['items'] = []
-            let total = 0
-            for (var i = 0; i < lineitems.length; i++) {
-                let e    = lineitems[i]
-                let item = await this.itemService.findItem(e.sku)
-                let price = item.price * e.units
-                total += price
-                let li = {sku:e.sku, name: item.name,units: e.units,comment:e.comment}
-                order['items'].push (li) 
-                await this.db.executeSQLInTxn(txn, 'insert-order-item', 
-                    [order.id, li.sku, li.name, li.units, li.comment])
-            }
-            await this.db.commit(txn)
-        
+            let order = await this.orderController.createOrder(uid, lineitems)
             res.status(httpStatus.OK).json(order)
         } catch (e) {
             next(e)
         }
         
     }
-
-    
-
  
     async changeOrderStatus(oid, status) {
         let txn  = await this.db.begin()

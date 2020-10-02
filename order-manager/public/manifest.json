@@ -1,0 +1,20 @@
+{
+    "name": "Hirrafood",
+    "short_name": "hiraafood",
+    "description": "base food in town",
+    "start_url": "/",
+    "background_color": "#000000",
+    "theme_color": "#0f4a73",
+    "icons": [{
+      "src": "images/logo-83x83.png",
+      "sizes": "83x83",
+      "type": "image/png"
+    }],
+    "serviceworker": {
+        "src": "./app.js",
+        "scope": "/app",
+        "type": "",
+        "update_via_cache": "none"
+    }
+
+  }

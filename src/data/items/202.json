@@ -1,0 +1,8 @@
+{
+    "sku": "202",
+    "name": "Chicken Manchurian",
+    "categories": ["non-veg", "chicken"],
+    "price": 9,
+    "description": "indian chinese style chicken",
+    "image": "/images/item/chicken-manchurian.jpg"
+}

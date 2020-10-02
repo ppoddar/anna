@@ -29,10 +29,10 @@ openssl pkcs12 -export \
      -noiter -nomaciter 
      
 echo generated following for $NAME
-echo "private key    :" $PRIVATE_KEY
-echo "certifcate     :" $CERT
-echo "key+certifcate :" $KEY_CERT
-echo "keystore       :" $KEYSTORE
+echo <quote>private key    :<quote> $PRIVATE_KEY
+echo <quote>certifcate     :<quote> $CERT
+echo <quote>key+certifcate :<quote> $KEY_CERT
+echo <quote>keystore       :<quote> $KEYSTORE
 
 keytool -import -trustcacerts \
    -alias $ALIAS-root \

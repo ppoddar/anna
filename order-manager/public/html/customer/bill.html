@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bill</title>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../css/hiraafood.css">
+
+</head>
+
+<body>
+  <div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
+
+  <div id='bill' class='container-fluid w-100 mx-auto'></div>
+  <div class='text-center'>
+    <button id='next' class='btn btn-primary'>next</button>
+  </div>
+  <div id='footer'>&copy; HiraaFood 2020-30</div>
+  
+
+  <script type="module">
+    import Application    from '../../scripts/app.js'
+    import Action         from '../../scripts/action.js'
+    import Navbar         from '../../scripts/widgets/navbar.js'
+    import Invoice        from '../../scripts/model/invoice.js'
+
+    let oid = sessionStorage.getItem('ORDER_ID')
+    $('body').css('cursor', 'progress')
+    Action.createInvoice(oid, (err,data) => {
+        $('body').css('cursor', 'default')
+        const invoice = new Invoice(data)
+        $('#navbar').append(new Navbar('Bill').render())
+        $('#bill').append(invoice.render())
+        $('#next').attr('disabled', false)
+        $('#next').on('click', ()=>{
+          window.location = './delivery.html'
+        })
+    })
+
+    
+  </script>
+</body>
+</html>
+
+
+
+
+<!--
+    <div class='text-center'><h5>Bill <span id='order-number'></span></h5></div>
+    <hr class="solid">
+    <div id='order-items'></div>
+    <hr class="solid">
+    <div class='d-flex flex-row no-gutters'>
+      <div class='col flex-grow-1'><b>Total</b></div>
+      <div id='order-total' class='col text-right'></div>
+    </div>
+  </div>
+-->

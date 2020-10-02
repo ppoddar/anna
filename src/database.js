@@ -1,29 +1,31 @@
 const { Pool }   = require('pg')
 const types      = require('pg').types
-const path       = require('path')
-const fs         = require('fs')
-const yaml       = require('js-yaml')
 const assert     = require('assert')
+const logger     = require('./logger')
 
 class Database {
     constructor(options) {
         assert(options, 'no options to create a database')
         this.url = `${options.host}:${options.port}/${options.database}`
-        console.log(`connecting to database [${this.url}] `)  
-        this.pool = new Pool(options)
         this.sqls = {}
-        this.readQueriesFromDir(options.sqldir)
-
-        types.setTypeParser(types.builtins.NUMERIC, function(val){
-            let r = parseFloat(val)
-            return r
+        this.pool = new Pool(options)
+        this.pool.connect((error,client,release) => {
+            if (error) {
+                logger.error(`Failed to connect to database [${this.url}]`, error)
+                process.exit(1)
+            } else {
+                logger.info(`connected to database [${this.url}] as user [${options.user}]`) 
+                types.setTypeParser(types.builtins.NUMERIC, function(val){
+                    let r = parseFloat(val)
+                    return r
+                })
+            }
         })
-        
-
     }
+
     /**
      * begins transaction.
-     * @returns connection. all operations on this connection
+     * @returns a transaction. all operations on this connection
      * would belong to same transaction
      */
     async begin() {
@@ -31,6 +33,7 @@ class Database {
         await client.query('BEGIN')
         return client
     }
+
     /**
      * commit a transaction
      * @param {Connection} client 
@@ -57,10 +60,16 @@ class Database {
         } 
     }
 
+    /** 
+     * executes an SQL of given name and with given parameters
+     * @param name name of a SQL. A databse uses a repository of SQL statements.
+     * The named query must be defined.
+     * @param params bind parameters, can be null/undefined
+     */
     async executeSQL(name, params) {
         const client = await this.pool.connect()
         try {
-            return await this.executeSQLInTxn(client, name, params)
+            return await this.executeSQLInTxn(client, name, params || [])
         } catch (e) {
             throw e
         } finally {
@@ -77,28 +86,52 @@ class Database {
      * a RejecetdPromise is returned.
      * The returned promise bubbles up to the controller API level.
      * 
+     * @param txn the transaction
+     * @param {object} name of a query
+     * @param {array} params bind parameters
+     * @returns array of result rows or a single row if query is marked as single.
+     * if result for a single row query is non unique, returns null 
+     */
+    async executeSQLInTxn(txn, name, params) {
+        return await this.executeQuery(txn, this.sqls.findQuery(name), params)
+    } 
+    /**
+     * Runs a named, parametrized SQL query (SELECT/INSERT/UPDATE/DELETE) 
+     * A important method becuase this application is mostly based on database
+     * query.
+     * 
+     * This is an async method, and hence always returns a Promise.
+     * When a database error occurs, the error is rethrown , i.e.
+     * a RejecetdPromise is returned.
+     * The returned promise bubbles up to the controller API level.
+     * 
      * 
      * @param {object} q a query with bind parameters. 
      * @param {array} params bind parameters
      * @returns array of result rows or a single row if query is marked as single.
      * if result for a single row query is non unique, returns null 
      */
-    async executeSQLInTxn(client, name, params) {
+    async executeQuery(txn, q, params) {
         // ref: https://itnext.io/error-handling-with-async-await-in-js-26c3f20bc06a
         try {
-            const q = this.findQuery(name)
-            console.debug(`SQL [${q.name}] [${q.text}] parameters [${params}]`)
-            let result = await client.query(q.text, params)
-            //console.debug(`returns  ${result.rowCount} rows`)
+            logger.debug(`SQL [${q.name}] [${q.text}] parameters [${params}]`)
+            let result = await txn.query(q.text, params)
             if (q.single) {
                 if (result.rowCount == 1) {
+                    logger.debug(`single query [${q.name}] parameters [${params}] returned ${result.rows[0]}`)
                     return result.rows[0]
                 } else {
-                    console.warn(`${name} returned ${result.rowCount} rows. Expected 1. Returning null`)
+                    logger.debug(`***WARN:single query [${q.name}] parameters [${params}] returned ${result.rowCount} rows. Expected a result row. Returning null`)
                     return null
                 }
             } else {
-                return  result.rows
+                if (result.rowCount > 0) {
+                    logger.debug(`query [${q.name}] parameters [${params}] returned ${result.rowCount} rows.`)
+                    return result.rows
+                } else {
+                    logger.debug(`***WARN:query [${q.name}] parameters [${params}] returned no rows. Returning empty list`)
+                    return []
+                }
             }         
         } catch (err) {
             throw err
@@ -115,60 +148,7 @@ class Database {
     }
 
     
-
-
-    findQuery(name) {
-        assert(name in this.sqls, `unknown query [${name}]. known queries are ${Object.keys(this.sqls).sort()}`)
-        return this.sqls[name]
-    }
-    /**
-     * read queries from *.yml files in a directoruy.
-     * @returns dictionary of queries indexed by name
-     */
-    readQueriesFromDir(dir) {
-        console.debug(`readQueriesFromDir(): SQL directory [${dir}]`)
-        if (!fs.existsSync(dir)) {
-            throw Error(`SQL dir ${dir} does not exist`)
-        }
-        let queries = {}
-        var files = fs.readdirSync(dir, {withFileTypes:true})
-
-        for (var i = 0; i < files.length; i++) {
-            if (files[i].isDirectory()) continue
-            var f = path.join(dir, files[i].name)
-            let q = this.readQueriesFromFile(f)
-            Object.assign(queries, q)
-        }
-        console.debug(`read ${Object.keys(queries).length} queries from ${files.length} files in [${dir}] directory`)
-        this.sqls = queries
-    }
-
-    /**
-     * reads query specifcation from given file
-     * 
-     * @param {file} file 
-     * @returns dictionary of queries indexed by name
-     */
-    readQueriesFromFile(file) {
-        let queries = {}
-        try {
-            //console.debug(`readQueriesFromFile(): ${file}`)
-            let fileContents = fs.readFileSync(file, 'utf8');
-            let data = yaml.safeLoad(fileContents);
     
-            for (var name in data) {
-                let query = data[name]
-                query['name'] = name
-                //console.info(`[${name}] ${query.text.substring(0,15)} ....`)
-                queries[name] = query 
-            }
-        } catch (e) {
-            console.error(e);
-        }
-        //console.debug(`read ${Object.keys(queries).length} queries from ${path.basename(file)}`)
-        return queries
-    }
-
 }
 
 module.exports = Database

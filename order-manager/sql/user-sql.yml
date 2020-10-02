@@ -1,0 +1,62 @@
+# does user exist
+find-user: 
+    single: true
+    text: SELECT ID FROM USERS WHERE ID=$1
+# select all aspects of an user
+select-user: 
+    single: true 
+    text: >
+        SELECT u.ID, u.NAME, u.PHONE, u.EMAIL, 
+        (SELECT array_to_string(array_agg(ur.role_fk),',') FROM USER_ROLES ur WHERE ur.user_fk = u.id) as ROLES,
+        p.HOMEPAGE as home
+        FROM USERS u 
+        LEFT JOIN USER_HOMEPAGES p 
+        ON u.id = p.user_fk
+        WHERE u.id = $1 
+        
+select-all-users: 
+     text: >
+        SELECT u.ID, u.NAME, u.PHONE, u.EMAIL, 
+        (SELECT array_to_string(array_agg(ur.role_fk),',') FROM USER_ROLES ur WHERE ur.user_fk = u.id) as ROLES,
+        p.HOMEPAGE as home
+        FROM USERS u 
+        LEFT JOIN USER_HOMEPAGES p 
+        ON u.id = p.user_fk
+
+authenticate-user:  
+    single: true 
+    text : >
+        SELECT ID, NAME, PHONE, EMAIL 
+        FROM USERS 
+        WHERE ID=$1 AND PASSWORD = crypt($2,  password) 
+
+insert-user-login: 
+    text:
+        INSERT INTO USER_LOGINS (ID,ROLE,LOGIN_TIME) 
+        VALUES ($1, $2, NOW())
+update-user-logout: 
+    text:
+        UPDATE USER_LOGINS SET LOGOUT_TIME = NOW() WHERE ID=$1 AND ROLE=$2
+
+
+logged-in-user: 
+    single: true
+    text:
+        SELECT ID,ROLE,LOGIN_TIME,LOGOUT_TIME FROM LOGGED_IN_USER WHERE ID=$1 
+
+insert-user:  
+    text: >
+        INSERT INTO USERS 
+        (ID, NAME, EMAIL,  PHONE,  PASSWORD)
+        VALUES ($1, $2, $3, $4,  crypt($5,  gen_salt( 'bf' ))) 
+insert-user-role:  
+    text: >
+        INSERT INTO USER_ROLES 
+        (USER_FK, ROLE_FK)
+        VALUES ($1, $2) 
+
+insert-user-page: 
+    text: >
+        INSERT INTO USER_HOMEPAGES
+        (USER_FK, HOMEPAGE) 
+        VALUES ($1, $2)

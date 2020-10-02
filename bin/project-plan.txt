@@ -1,0 +1,9 @@
+1. Integation Test
+    mocha test 
+
+2. Selenium Tests
+    mocha selenium-test
+
+3. Remote Deployment
+
+4. admin app

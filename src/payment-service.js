@@ -1,6 +1,7 @@
 const Razorpay = require('razorpay')
 const SubApplication = require('./sub-app')
 const httpStatus = require('http-status-codes')
+const OrderController = require('./order-controller')
 
 /**
  * payment service .
@@ -9,16 +10,19 @@ const httpStatus = require('http-status-codes')
 class PaymentService extends SubApplication {
     constructor(db,options) {
         super(db,options)
-        this.merchant_id = 'E6zizYl3YOaAtT'
+        this.PaymentGatewayCredentials = options
+        this.merchant_id = options.merchant_id
         this.razorPay = new Razorpay({
-            key_id: 'rzp_test_5GjkKK47NrE4b0',
-            key_secret: 'kpwjzn4pPpaVdDlXBqmYq5Ku'
+            key_id:     options.key_id,
+            key_secret: options.key_secret
         })
-
-        this.app.post('/:oid/:uid',         this.createInvoice.bind(this))
-        this.app.get('/:oid',               this.findInvoice.bind(this))
-        this.app.post('/:oid/:address_id',  this.setDeliveryAddress.bind(this))
-        this.app.get('/payment-options',    this.getPaymentGatewayOptions.bind(this))
+        this.controller = new OrderController(db)
+        
+        this.app.post('/:oid/user/:uid',         this.createInvoice.bind(this))
+        this.app.post('/:oid/address/:address_id',  this.setDeliveryAddress.bind(this))
+        this.app.get('/find/:oid',               this.getInvoice.bind(this))
+        this.app.get('/payment-gateway-credentials',   this.getPaymentGatewayCredentials.bind(this))
+        
     }
 
     async createPayorder(oid, amount) {
@@ -46,47 +50,6 @@ class PaymentService extends SubApplication {
         new Razorpay(options).open();
     }
 
-    /**
-	 * Creates the options to be passed to payment gateway
-	 */
-    createRazorPayOptions(invoice, customer, cb) {
-        var self = this;
-        var options = {
-            "key": self.key.id,
-            "amount": invoice.payorder.amount_due,
-            "currency": invoice.payorder.currency,
-            "name": "HiraaFood",
-            "description": "best food in town",
-            "image": "/images/logo.png",
-            "order_id": invoice.payorder.id,
-            "prefill": {
-                "name": customer.name,
-                "email": customer.email,
-                "contact": customer.phone
-            },
-            "notes": {
-                "address": "note value"
-            },
-            "theme": {
-                "color": "#3b5998"
-            },
-			/**
-			 * callback on success of payment operation
-			 */
-            "handler": (response) => { this.onPaymentSuccess(response, invoice, cb) },
-			/**
-			 * callback when payment dialog is closed. Razor Pay automatically
-			 * retries on failure.
-			 */
-            "modal": {
-                "ondismiss": () => {
-
-                }
-            }
-        };
-        return options;
-    }
-
 	/**
      * Creates an invoice (bill) for given line items.
      * Creates an order for the given line items.
@@ -100,43 +63,10 @@ class PaymentService extends SubApplication {
         try {
             const oid = req.params.oid
             const uid = req.params.uid
-            let lineitems = await this.db.executeSQL('select-order-items', [oid])
-            let txn = await this.db.begin()
-            let invoice = {id: oid, items: []}
-            // order of SQL execution is important
-            await this.db.executeSQLInTxn(txn, 'insert-invoice', [invoice.id])
-
-            let totalPrice   = 0.0
-            let totalDiscount = 0.0
-            for (var i = 0; i < lineitems.length; i++) {
-                let li = lineitems[i]
-                let price = (await this.pricingService.computePrice(li,uid)).amount
-                totalPrice += price
-                await this.addInvoiceItem(txn, invoice, 'PRICE', li.sku, li.name, price)
-                let discount = await this.pricingService.computeDiscount(li, uid)
-                if (discount != null) {
-                    console.log(`discount for line item ${li.sku}=${discount}`)
-                    totalDiscount += discount.amount
-                    await this.addInvoiceItem(txn, invoice, 'DISCOUNT', li.sku, discount.name, discount.amount)
-                } 
-            }
-            var totalTax = 0.0
-            var taxes = await this.pricingService.computeTax(totalPrice)
-            for (var j = 0; j < taxes.length; j++) {
-                var tax = taxes[j]
-                totalTax += tax.amount
-                // Tax may have no particular item
-                await this.addInvoiceItem(txn, invoice, 'TAX', '', tax.name, tax.amount)
-            }
-            invoice.amount = this.pricingService.toAmount(totalPrice - totalDiscount + totalTax)
-            console.log(`invoice.amount=${invoice.amount}`)
+            var invoice = await this.controller.createInvoice(oid,uid)
             let payorder = await this.createPayorder(invoice.id, invoice.amount)
+            await this.controller.setPayorder(oid, payorder)
             invoice.payorder = payorder
-            await this.db.executeSQLInTxn(txn, 'insert-payorder',         [payorder.id, invoice.id, payorder.amount_due])
-            await this.db.executeSQLInTxn(txn, 'update-invoice-payorder', [invoice.id, invoice.payorder.id, invoice.amount])
-            await this.db.executeSQLInTxn(txn, 'record-order-event', [oid, 'CREATED'])
-
-            await this.db.commit(txn)
 
             res.status(httpStatus.OK).json(invoice)
         } catch (e) {
@@ -145,24 +75,10 @@ class PaymentService extends SubApplication {
 
     }
 
-	/*
-     *
-     */
-    async addInvoiceItem(txn, invoice, kind, sku, desc, amount) {
-        var n = Object.keys(invoice.items).length
-        console.debug(`invoice ${invoice.id} add item   ${n} ${kind} ${desc} ${amount}`)
-        var item = { invoice: invoice.id, id: n, kind: kind, sku: sku, description: desc, amount: amount }
-        await this.db.executeSQLInTxn(txn, 'insert-invoice-item',
-            [invoice.id, n, kind, sku, desc, amount])
-        invoice.items.push(item)
-    }
-
-    async findInvoice(req,res,next) {
+    async getInvoice(req,res,next) {
         try {
             const oid = req.params.oid
-            const invoice = await this.db.executeSQL('select-invoice', [oid])
-            const invoiceItems = await this.db.executeSQL('select-invoice-items', [oid])
-            invoice.items = invoiceItems
+            const invoice = await this.controller.getInvoice(oid)
             res.status(httpStatus.OK).json(invoice)
         } catch (e) {
             next(e)
@@ -172,24 +88,16 @@ class PaymentService extends SubApplication {
         try {
             var oid          = req.params.oid
             var address_id   = req.params.address_id
-            await this.db.executeSQL('update-delivery-address', [oid, address_id])
+            await this.controller.setDeliveryAddress(oid, address_id)
             res.status(httpStatus.OK)
         } catch (e) {
             next(e)
         }
     }
 
+    async getPaymentGatewayCredentials(req, res, next) {
+        res.status(httpStatus.OK).json(this.PaymentGatewayCredentials)
 
-    /**
-	 * Creates the options to be passed to payment gateway
-	 */
-	async getPaymentGatewayOptions(req,res,next) {
-        var options = {
-			"key": this.razorPay.key_id
-		};
-		return options;
-	}
-    
-
+    }
 }
 module.exports = PaymentService

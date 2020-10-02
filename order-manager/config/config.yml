@@ -1,0 +1,7 @@
+security:
+  key: config/security/hiraafood.com.key
+  cert: config/security/hiraafood.com.crt
+payment-service: 
+  key_id: rzp_test_5GjkKK47NrE4b0
+  merchant_id: E6zizYl3YOaAtT
+  key_secret: kpwjzn4pPpaVdDlXBqmYq5Ku

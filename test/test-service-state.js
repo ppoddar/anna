@@ -29,7 +29,7 @@ describe('Tests for Service state', function () {
     it('admin/tester/guest users exists', function(done){
         let known_users = ['tester','guest']
         for (var i = 0; i < known_users.length; i++) {
-            request(`${BASE_URL}/user/${known_users[i]}`, function(err,res,body){
+            request(`${BASE_URL}/user/find/${known_users[i]}`, function(err,res,body){
                 assert.equal(res.statusCode, 200)
             })
         }

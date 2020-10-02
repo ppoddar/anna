@@ -1,4 +1,5 @@
 const httpStatus = require('http-status-codes')
+const logger = require('./logger')
 const vsprintf = require('sprintf-js').vsprintf
 // A set of string printf formats indexed by error message id
 // The format will be used by replacing variables at runtime
@@ -72,7 +73,7 @@ class AuthenticationError extends ApplicationError {
  * Code should throw a typed error with a message
  */
 function  ErrorHandler(err,req,res,next) {
-        console.error(`--------- caught following exception at app error handler -----------`)
+        console.error(`--------- caught following exception at top-level app error handler ${err.constructor.name} -----------`)
         console.error(err)
         var status = httpStatus.INTERNAL_SERVER_ERROR
         var message = "no message"
@@ -80,7 +81,7 @@ function  ErrorHandler(err,req,res,next) {
             status = err.status
             message = err.getMessage()
         }
-        res.status(status).json({message:message, url:req.url})
+        if (!res.headersSent) res.status(status).json({message:message, url:req.url})
         console.log(`***ERROR: ${req.url} ${status}: ${message}`)
         next()
 }

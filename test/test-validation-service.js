@@ -75,7 +75,7 @@ describe('Tests for Data Validation', function () {
 
     it('validate: existing user name', function (done) {
         const existingUsername = 'tester'
-        request(`${BASE_URL}/user/${existingUsername}/exists`,
+        request(`${BASE_URL}/user/exists/${existingUsername}`,
           function(err,res,body){
                 assert.isNull(err)
                 assert.equal(res.statusCode, 200)
@@ -85,7 +85,7 @@ describe('Tests for Data Validation', function () {
 
     it('validate: non-existing user name', function (done) {
         const nonexistingUsername = 'some-noexistent-user'
-        request(`${BASE_URL}/user/${nonexistingUsername}/exists`,
+        request(`${BASE_URL}/user/exists/${nonexistingUsername}`,
           function(err,res,body){
                 assert.isNull(err)
                 assert.equal(res.statusCode, 404)

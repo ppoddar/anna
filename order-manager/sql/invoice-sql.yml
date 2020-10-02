@@ -1,0 +1,55 @@
+select-invoice: 
+    single: true
+    description: 
+    text: >
+      SELECT i.ID, o.USER_ID as user, i.STATUS, i.CREATED_AT, i.AMOUNT
+      FROM INVOICES i LEFT JOIN ORDERS o
+      ON i.ID = o.ID
+      WHERE i.ID = $1
+
+select-invoice-items: 
+    text: >
+      SELECT invoice_fk as invoice, id, kind, description, amount 
+      FROM INVOICE_ITEMS
+      WHERE INVOICE_FK=$1 
+
+
+update-delivery-address:  
+    text: > 
+        UPDATE INVOICES SET DELIVERY_ADDRESS=$2 
+        WHERE ID=$1
+
+update-invoice-payorder:  
+    text: > 
+        UPDATE INVOICES SET PAYORDER=$2, AMOUNT=$3::FLOAT
+        WHERE ID= $1
+        
+update-invoice-status:  
+    text: > 
+        UPDATE INVOICES SET STATUS=$2
+        WHERE ID= $1 
+
+
+insert-invoice:  
+    text: > 
+        INSERT INTO INVOICES 
+        (ID, CREATED_AT, STATUS) 
+        VALUES ($1, NOW(), 'CREATED') 
+
+insert-invoice-item:  
+  text: >
+      INSERT INTO INVOICE_ITEMS 
+      (INVOICE_FK,  ID,  KIND, SKU, DESCRIPTION, AMOUNT)
+      VALUES ($1,  $2,  $3, $4, $5, $6::FLOAT)
+
+insert-payorder: 
+    text: >
+        INSERT INTO PAYORDERS
+        (ID, INVOICE_FK, AMOUNT, STATUS, CREATED_AT)
+        VALUES ($1, $2, $3, 'INR', NOW())
+
+select-payorder: 
+    single: true
+    text: >
+        SELECT ID,AMOUNT FROM PAYORDERS
+        WHERE INVOICE_FK=$1

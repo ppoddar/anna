@@ -1,44 +1,74 @@
-const httpStatus = require('http-status-codes')
-const SubApplication = require('./sub-app')
-const AuthenticationError = require('./errors').AuthenticationError
+const httpStatus        = require('http-status-codes')
+const SubApplication    = require('./sub-app.js')
+const UserController    = require('./user-controller.js')
+const AddressController = require('./address-controller.js')
+const fs = require('fs')
+const { pathMatch } = require('tough-cookie')
 
-var cookie = require('cookie');
-const cookieParser = require('cookie-parser')
 const COOKIE_NAME = 'hiraafood'
-
 const GUEST_USER = {id:'guest', role:'customer'}
 
 class UserService extends SubApplication {
-    static RESERVED_USERS = ['admin', 'guest']
     constructor(db, options) {
         super(db, options)
-        this.app.post('/:uid',       this.createUser.bind(this))
-        this.app.get('/:uid',        this.getUser.bind(this))          // gets complete user information
-        this.app.get('/:uid/exists', this.findUser.bind(this))  // only 200 or 404 status
+        this.controller = new UserController(db)
+        this.addressController = new AddressController(db)
 
-        this.app.post('/:uid/login', this.login.bind(this))
 
-        this.app.get('/:uid/addresses', this.getAddresses.bind(this))
-        this.app.get('/:uid/address-by-kind/:kind', this.getAddressByKind.bind(this))
-        this.app.get('/:uid/address-by-id/:id', this.getAddressById.bind(this))
-
-        this.app.post('/:uid/address', this.createAddress.bind(this))
-
-        this.populate()
+        this.app.post('/',           this.createUser.bind(this))
+        this.app.get('/all',         this.getAllUsers.bind(this))
+        this.app.get('/find/:uid',   this.getUser.bind(this))     // gets complete user information
+        this.app.get('/exists/:uid', this.existsUser.bind(this))  // only 200 or 404 status
+        this.app.get('/loggedin/:uid', this.existsUser.bind(this))  // only 200 or 404 status
+        this.app.post('/login/:uid/role/:role', this.login.bind(this))
+        this.app.get('/addresses/:uid', this.getAddresses.bind(this))
+        this.app.get('/address-by-kind/:kind/:uid', this.getAddressByKind.bind(this))
+        this.app.get('/address-by-id/:id/:uid', this.getAddressById.bind(this))
+        this.app.post('/address/:uid', this.createAddress.bind(this))
+        
     }
 
-    async findUser(req, res, next) {
+    async populate() {
+        await this.controller.populate()
+        await this.controller.enumerateUsers()
+    }
+
+    /*
+     * response status is either OK or NOT_FOUND
+     * whether user id exists
+     */
+    async existsUser(req, res, next) {
         try {
-            const user = await this.db.executeSQL('find-user', [req.params.uid])
-            res.status(user == null ? httpStatus.NOT_FOUND : httpStatus.OK).end()
+            let exists = await this.controller.existsUser(req.params.uid)
+            console.log(`${this.constructor.name}  user [${req.params.uid}] exists=${exists} `)
+            res.status((exists == true) ? httpStatus.OK : httpStatus.NOT_FOUND).end()
         } catch (e) {
             next(e)
         }
     }
 
+    /*
+     * response status is either OK or NOT_FOUND
+     * whether user id is currently logged in
+     */
+    async isLoggedIn(req,res,next) {
+        try {
+            let loggedIn = await this.controller.isLoggedIn(req.params.uid)
+            res.status(loggedIn ? httpStatus.OK : httpStatus.NOT_FOUND).end()
+        } catch (e) {
+            next(e)
+        }
+
+    }
+
+    /*
+     * get entire user record (without addresses) with all possible roles,
+     * home page identifed by user id
+     * 
+     */
     async getUser(req, res, next) {
         try {
-            let user = await this.db.executeSQL('select-user', [req.params.uid])
+            let user = await this.controller.getUser(req.params.uid)
             res.status(httpStatus.OK).json(user)
         } catch (e) {
             next(e)
@@ -46,63 +76,46 @@ class UserService extends SubApplication {
     }
 
     /*
-     */
-    async authorize(req, res, next) {
-        if (req.session.user) {
-            next()
-            return
-        }
-        console.log(`redicting to ${LOGIN_PAGE}`)
-        return res.redirect(LOGIN_PAGE)
-    }
-
-    /*
+     * get  user id of all users
      * 
-     * callbak signature fn(err, status, user)
      */
-    async authenticate(uid, pwd, callabck) {
-        console.log(`authenticate ${uid}`)
-        let user = await this.db.executeSQL('find-user', [uid])
-        if (!user) {
-            console.log(`authenticate: no user found ${uid}`)
-            callabck.call(null, new Error(`no user ${uid} found`), httpStatus.NOT_FOUND, null)
-        } else {
-            user = await this.db.executeSQL('select-user', [uid])
-            user.roles = user.roles.split(',')
-            let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
-            if (!row) {
-                callabck.call(null, new Error(`wrong-password for ${uid}`), httpStatus.FORBIDDEN, null)
-            } else {
-                callabck.call(null, null, httpStatus.OK, user)
-            }
+    async getAllUsers(req, res, next) {
+        try {
+            let users = await this.controller.getAllUsers()
+            res.status(httpStatus.OK).json(users)
+        } catch (e) {
+            next(e)
         }
+
     }
 
     /*
      * Login a user.
-     * Request carries basic authentication header
+     * Request carries basic authentication header.
      * Response cookies are sent back
      */
     async login(req, res, next) {
         try {
             if (req.params.uid == GUEST_USER.id) {
                 await this.loginAsGuest(req,res,next)
+                await this.controller.login(GUEST_USER.id, GUEST_USER.role)
                 return
             }
             const creds = this.extractAuthrozationHeader(req, res)
             const uid = creds.username
             const pwd = creds.password
-            console.log(`login user ${uid}`)
-            await this.authenticate(uid, pwd, (err, status, user) => {
+            const role = req.params.role
+            console.log(`login user ${uid} as ${role}`)
+            await this.controller.authenticate(uid, pwd, role, async (err, user) => {
                 if (err == null) {
+                    await this.controller.login(uid, role)
                     const ctx = this
                     req.session.regenerate(function () {
                         ctx.newSession(user, req, res)
                     })
                 } else {
-                    console.error(`authenticate callback has received error ${err} status=${status} user=${user}`)
-                    res.status(status).json({ message: err })
-
+                    console.error(`authenticate callback has received error ${err} user=${user}`)
+                    res.status(httpStatus.FORBIDDEN).json({ message: err })
                 }
             })
         } catch (e) {
@@ -144,71 +157,58 @@ class UserService extends SubApplication {
     }
 
     /**
-     * create an user
-     * TODO:
+     * create an user. The payload carries user details, roles, zero or or more addresses
      * @param {} user  must have one or more addressses
      */
     async createUser(req, res, next) {
         try {
-            if (this.isReservedUser(req.params.uid)) {
-                res.status(httpStatus.BAD_REQUEST)
-                    .json({message:`${req.params.uid} is reserved user name`}).end()
+            let user  = this.postBody(req)
+            try {
+                this.controller.validateUser(user)
+                if (user.addresses) { // not all  users require address
+                    for (var kind in user.addresses) {
+                        this.addressController.validateAddress(kind, user.addresses[kind])
+                    }
+                }
+            } catch (e) {
+                this.badRequest(req, res, e)
+                return 
             }
-            let user = this.postBody(req)
-            await this.newUser(user)
-            delete user['password']
-            res.status(httpStatus.OK).end()
+            const userCreated = await this.controller.createUser(user)
+            console.log(`${this.constructor.name}.createUser() ${userCreated} of type ${userCreated.constructor.name}`)
+            res.status(httpStatus.OK).json(userCreated)
         } catch (e) {
             next(e)
         }
     }
-
-
-    async newUser(user) {
-        let txn = await this.db.begin()
-        var params = [user.id, user.name, user.email, user.phone, user.password]
-        await this.db.executeSQLInTxn(txn, 'insert-user', params)
-        for (var kind in user.addresses) {
-            let addr = user.addresses[kind]
-            var params = [addr.kind, user.id, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
-            await this.db.executeSQLInTxn(txn, 'upsert-address', params)
-        }
-        let page = user.page
-        for (var i = 0; i < user.roles.length; i++) {
-            if (!page) page = user.roles[0]
-            await this.db.executeSQLInTxn(txn, 'insert-user-role', [user.id, user.roles[i]])
-        }
-        await this.db.executeSQLInTxn(txn, 'insert-user-page', [user.id, page])
-
-
-        this.db.commit(txn)
-    }
-
-    // --------------------------------------------------------------------------
-    /**
-     * adds an address for given user.
-     * pair of user id and address name is unique
-     * @param {} user 
-     * @param {*} addr an address
+    /*
+     * create an address for an user
      */
     async createAddress(req, res, next) {
         try {
             const addr = this.postBody(req)
-            let params = [addr.kind, req.params.uid, addr.line1, addr.line2, addr.city, addr.zip, addr.tips]
-            const address = await this.db.executeSQL('upsert-address', params)
+            try {
+                this.addressController.validateAddress(addr.kind, addr)
+            } catch (e) {
+                this.badRequest(req, res, e)
+                return
+            }
+            const update = this.queryParam(req, 'update', false)
+            var address
+            if (update) {
+                address = await this.addressController.updateAddress(null, req.params.uid, addr)
+            } else {
+                address = await this.addressController.insertAddress(null, req.params.uid, addr)
+            }
             res.status(httpStatus.OK).json(address)
         } catch (e) {
             next(e)
         }
     }
-    /**
-     * get all addresses 
-     * @returns array of addresses
-     */
+
     async getAddresses(req, res, next) {
         try {
-            let addresses = await this.db.executeSQL('select-all-address', 
-                [req.params.uid])
+            let addresses = await this.addressController.getAddresses(req.params.uid)
             res.status(httpStatus.OK).json(addresses)
         } catch (e) {
             next(e)
@@ -217,8 +217,7 @@ class UserService extends SubApplication {
 
     async getAddressByKind(req, res, next) {
         try {
-            const address = await this.db.executeSQL('select-address-by-kind', 
-                [req.params.uid, req.params.kind])
+            const address = await this.addressController.getAddressByKind(req.params.uid, req.params.kind)
             res.status(httpStatus.OK).json(address)
         } catch (e) {
             next(e)
@@ -227,45 +226,14 @@ class UserService extends SubApplication {
 
     async getAddressById(req, res, next) {
         try {
-            const address = await this.db.executeSQL('select-address-by-id', 
-                [req.params.uid, req.params.id])
+            const address = await this.addressController.getAddressById(req.params.uid, req.params.id)
             res.status(httpStatus.OK).json(address)
         } catch (e) {
             next(e)
         }
     }
 
-    async existsUser(uid) {
-        let row = await this.db.executeSQL('find-user', [uid])
-        //console.log(`result of [find-user] ${row}`)
-        return row != null
-    }
-
-    async populate() {
-        var fs = require('fs')
-        var path = require('path')
-        var yaml = require('js-yaml')
-        var data_dir = path.join(__dirname, '../data/users')
-        //console.log(`data directory ${data_dir}`)
-        if (fs.existsSync(data_dir)) {
-            //console.log(`populating users from ${data_dir}`)
-            var files = fs.readdirSync(data_dir, { withFileTypes: true })
-            for (var i = 0; i < files.length; i++) {
-                const file = files[i]
-                if (file.isDirectory()) continue
-                //console.log(`populating user from ${file.name}`)
-                const file_path = path.join(__dirname, '../data/users', file.name)
-                let fileContents = fs.readFileSync(file_path, 'utf8');
-                let user = yaml.safeLoad(fileContents);
-                if (! await this.existsUser(user.id)) {
-                    console.log(`saving user ${user.id} from ${file_path}`)
-                    this.newUser(user)
-                } else {
-                    //console.log(`user ${user.id} exists`)
-                }
-            }
-        }
-    }
-
+    
+    
 }
 module.exports = UserService
