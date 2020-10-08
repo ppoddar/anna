@@ -8,7 +8,7 @@ HOME_DIR=`cd $DIR/..;pwd`
 
 APPNAME=hiraafood
 HOSTNAME=anna
-
+REMOTE=0
 DOCKER_USER=ppoddar
 PROD_USER=ec2-user
 
@@ -20,7 +20,6 @@ GIT_URL=git@github.com:ppoddar/anna.git
 
 LOCALHOST=`ipconfig getifaddr en0`
 
-REMOTE_HOST=0
 SRC=.
 COLOR_RED='\033[0;31m'
 COLOR_RESET='\033[0m' 
@@ -39,44 +38,13 @@ function info {
     echo $COLOR_GREEN$1$COLOR_RESET
 }
 
-function process_command_line {
-    while [[ $# -gt 0 ]]; do
-        key=$1
-        case $key in 
-            -r)
-                if [[ $# -eq 0 ]]; then 
-                    REMOTE_HOST=x.y.z
-                    warn  'no production host specified. Using default'$REMOTE_HOST
-                else
-                    REMOTE_HOST=$2
-                    info  'deploying to '$REMOTE_HOST
-                    shift
-                fi
-                shift
-                ;;
-            -h|--help|-?)
-                HELP=1
-                shift
-            ;;
-            *)
-                echo unknown option $key
-                usage
-                shift
-                exit
-                ;;
-        esac
-    done 
-}
 
-function get_latest_source {
-    git pull
-}
 
 function check_uncommited {
     if [[ -z $(git status -s) ]]; then
         echo 
     else 
-        if [[ -z $REMOTE_HOST ]]; then
+        if [[ $REMOTE -eq 1 ]]; then
             error 'can not deploy to production with uncommitted files'
             git status -s
             exit 1
@@ -104,21 +72,44 @@ function populate_menu {
     echo 'populate menu'
     node $HOME_DIR/src/populate_objects.js -d $HOME_DIR/data/menu/
 }
+function get_latest_source {
+    git pull
+}
 
 # -----------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    key=$1
+    case $key in 
+        -r)
+            REMOTE=1
+            shift
+            ;;
+        -h|--help|-?)
+            HELP=1
+            shift
+        ;;
+        *)
+            echo unknown option $key
+            usage
+            shift
+            exit
+            ;;
+    esac
+done 
 
-process_command_line
-if [[ -z $REMOTE_HOST ]]; then
-    info 'deploying '$APPNAME' dockerized application in AWS EC2 host '$REMOTE_HOST
+
+if [[ $REMOTE -eq 1 ]]; then
+    REMOTE_HOST=hiraafood.com
+    info 'deploying '$APPNAME' dockerized application to '$REMOTE_HOST
 else
     info 'deploying '$APPNAME' dockerized application in stage'  
 fi
 check_uncommited
 create_docker_image
 push_docker_image
-if [[ -z $REMOTE_HOST ]]; then
+if [[ $REMOTE -eq 1 ]]; then
 ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << 'EOSSH'
-    docker run --network host --hostname $HOSTNAME --rm $DOCKER_IMAGE 
+    docker run -d -p $PORT:8080 --rm $DOCKER_IMAGE 
 EOSSH
 else
     info 'running dockerized application. access it as port '$PORT
