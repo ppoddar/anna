@@ -18,8 +18,8 @@ var logger = require('./logger')
  * @param urlpath
  * @param payload
  */
-function  post_request(protocol, host, port, urlpath, payload) {
-    console.log(`POST http://${host}:${port}/${urlpath} (${payload.length} bytes)`)
+function  post_request(protocol, host, port, urlpath, obj, objtype) {
+    const payload = JSON.stringify(obj)
     const options = {
         hostname: host,
         port: port,
@@ -30,6 +30,7 @@ function  post_request(protocol, host, port, urlpath, payload) {
           'Content-Length': payload.length
         }
       }
+    const oid = objtype == 'user' ? obj.id : obj.sku
     const server = protocol == 'http' ? http : https
     const req = server.request(options, res => {
         var body = ''
@@ -37,8 +38,17 @@ function  post_request(protocol, host, port, urlpath, payload) {
             body += chunk
         })
         res.on('end', function() {
-            logger.info(`statusCode: ${res.statusCode}`)
-            logger.info(body)
+            const targetUrl = `${protocol}://${host}:${port}${urlpath}`
+            const status = res.statusCode
+            logger.debug(`POST  ${targetUrl} (${payload.length} bytes) ${status}`)
+            if (status == 200) {
+                logger.info(`created new ${objtype} ${oid}`)
+            } else if (res.statusCode == 304) {
+                logger.warn(`${objtype} ${oid} exists`)
+            } else {
+                logger.warn('unexpected response:')
+                logger.warn(body)
+            }
         })
     })
 
@@ -54,36 +64,35 @@ function  post_request(protocol, host, port, urlpath, payload) {
  * read given yml/json file.
  * poulates menu item by POST request to the service
  */
-function populate_from_file(protocol, host, port, urlpath, file_path) {
+function populate_from_file(protocol, host, port, urlpath, file_path, objtype) {
     if (!fs.existsSync(file_path)) {
-        logger.error(`can not read non-existent file [${file_path}]`)
+        logger.error(`can not read non-existent ${objtype} file [${file_path}]`)
         process.exit(1)
     }
-    logger.info(`populating items from ${file_path}`)
+    logger.info(`reading ${objtype} from ${file_path}`)
     let fileContents = fs.readFileSync(file_path, 'utf8');
-    var items = []
+    var objects = []
     if (file_path.endsWith('.yml')) {
-        items = yaml.parse(fileContents)
+        objects = yaml.parse(fileContents)
     } else if (file_path.endsWith('.json')) {
-        items = JSON.parse(fileContents)
-    } else if (fs.lstatSync(file_path)) {
-        populate_from_directory(protocol, host, port, file_path)
+        objects = JSON.parse(fileContents)
+    } else if (fs.lstatSync(file_path).isDirectory()) {
+        populate_from_directory(protocol, host, port, file_path, objtype)
     } else {
         logger.error(`can not read file [${file_path}]. Only accepts *.yml and *.json file`)
         return
     }
-    if (!Array.isArray(items)) items = [items]
-    for (var i = 0; i < items.length; i++) {
-        var payload =  JSON.stringify(items[i])
-        post_request(protocol, host, port, urlpath, payload)
+    if (!Array.isArray(objects)) objects = [objects]
+    for (var i = 0; i < objects.length; i++) {
+        post_request(protocol, host, port, urlpath, objects[i], objtype)
     }
 }
     
-function populate_from_directory(protocol, host, port, urlpath, dir_path) {
+function populate_from_directory(protocol, host, port, urlpath, dir_path, objtype) {
     var files = fs.readdirSync(dir_path, { withFileTypes: true })
     for (var i = 0; i < files.length; i++) {
         const file_path = path.join(dir_path, files[i].name)
-        populate_from_file(protocol, host, port, urlpath, file_path)
+        populate_from_file(protocol, host, port, urlpath, file_path, objtype)
     }
     
 }
@@ -94,7 +103,6 @@ const host     = cli.getOption('--host', 'localhost');
 const port     = cli.getOption('--port', '8090');
 const objtype  = cli.getOption('--obj', 'item')
 const dir_path = cli.getOption('-d')
-const urlpath = '/item' 
-if (objtype == 'user') urlpath = '/user'
+const urlpath = (objtype == 'user') ? '/user' : '/item' 
 
-populate_from_directory(protocol, host, port, urlpath, dir_path)
+populate_from_directory(protocol, host, port, urlpath, dir_path, objtype)
