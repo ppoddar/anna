@@ -133,10 +133,7 @@ class OrderManager {
         process.on('SIGINT', function() { // 2
             logger.error('exit..................')
             process.exit(2)
-        })
-        
-        this.itemService.populate()
-        
+        })        
         server.listen(this.port, '0.0.0.0')
     }
 
