@@ -17,8 +17,6 @@ class UserController {
         this.addressController = new AddressController(db)
     }
 
-
-
     async existsUser(uid) {
         const user = await this.db.executeSQL('find-user', [uid])
         const exists = user !== null
@@ -102,6 +100,11 @@ class UserController {
         await this.db.executeSQL('update-user-logout', [uid, role])
     }
 
+    async existsRole(role) {
+        return this.db.executeSQL('find-role', [role]) != null
+
+    }
+
     /*
      * Populates few known users from descriptors found in ./data/users directory.
      */
@@ -133,33 +136,7 @@ class UserController {
     }
 
 
-    validateUser(user) {
-        if (user == undefined || Object.keys(user).length == 0) {
-            throw new Error(`user is empty or defined`)
-        }
-        if (!user.id) {
-            throw new Error(`no id for user`)
-        }
-        if (!user.roles) {
-            throw new Error(`no role for ${user.id}`)
-        }
-
-        if (user.roles.length == 0) {
-            throw new Error(`empty role for ${user.id}`)
-        }
-        for (var i = 0; i < user.roles.length; i++) {
-            if (!VALID_ROLES.includes(user.roles[i])) {
-                throw new Error(`unknown role ${user.roles[i]} for ${user.id}`)
-            }
-        }
-        if (user.roles.includes('customer')) {
-            if (!('billing' in user.addresses)) {
-                throw new Error(`no billing for user ${user.id} in customer role`)
-            }
-
-        }
-    }
-
+   
     async enumerateUsers() {
         const users = await this.db.executeSQL('select-all-users', [])
         for (var i = 0; i < users.length; i++) {

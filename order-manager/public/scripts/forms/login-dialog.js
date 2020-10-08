@@ -20,18 +20,20 @@ class LoginDialog extends BasicDialog {
         this.form = new LoginForm(this, opts)
         this.createAction({id:'login', label: 'login', 
             action: this.login.bind(this)})
-        this.createAction({id:'login-as-guest', label: 'login as guest', 
+        this.createAction({id:'cancel', label: 'Cancel', 
             type:'secondary', 
-            action: this.loginAsGuest.bind(this)})
+            action: this.close.bind(this)})
     }
 
+    /*
+     * Authenticates an user with a given role
+     */
     login() {
         const uid = this.form.getFormInput('username').getValue()
         const pwd = this.form.getFormInput('password').getValue()
-        const role = 'customer'
+        const role = this.options.role || 'customer'
         Action.login(uid, pwd, role, (err, response)=>{
             if (err) {
-                Application.eraseCookie()
                 new Alert('login error', err.responseText).open()
             } else {
                 Application.setUser(response)

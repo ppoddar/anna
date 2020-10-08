@@ -12,7 +12,7 @@ import FormInput from './form-input.js'
  class BasicForm {
      constructor(dialog, opts) {
         this.options = opts || {}      // any option to configure further
-        this.title = this.constructor.name
+        this.title = this.options.title || this.constructor.name
         this.dialog = dialog   // optional. required only if this form need to close
                                 // enclosing dialog 
         this.inputs  = []      // an array of FormInput or other jQuery elements
@@ -25,7 +25,7 @@ import FormInput from './form-input.js'
 
 
     getTitle() {
-        return (this.options.title) || this.constructor.name
+        return this.options.title || this.constructor.name
     }
 
     /**
@@ -68,7 +68,8 @@ import FormInput from './form-input.js'
      * create empty body if no form inputs (e.g. an alert dialog box)
      */
     createBody() {
-		var $form = this.$el('<div>', 'form-horizontal m-1 p-1 needs-validation')
+        var $form = $('<div>')
+        $form.addClass('form-horizontal m-1 p-1 needs-validation')
         $form.attr('novalidate', 'true')
         $form.attr('autocomplete', 'off')
         
@@ -89,14 +90,14 @@ import FormInput from './form-input.js'
             }
 
         }
-        throw new Error(`no form input with key ${key} in form ${this.getTitle()}`)
+        throw new Error(`no input with id [${key}] in form ${this.getTitle()}`)
     }
     
     /**
      * Validates this form.
      * 
      * A form has zero or more input elements.
-     * Each of these inputs can have Zero or more validator function.
+     * Each of these inputs can have Zero or more validator functions.
      * A validator function could be asynchronous.
      * 
      * This method calls each input element to validate itself.
@@ -133,7 +134,7 @@ import FormInput from './form-input.js'
     }   
     
     /**
-    * create a jQuery elment and appends given children 
+    * create a jQuery element and appends given children 
     * @param tag
     * @param cls
     * @param $children

@@ -1,9 +1,10 @@
 import LoginDialog from './forms/login-dialog.js'
 import User from './model/user.js'
 import Alert from './forms/alert.js'
+import Action from './action.js'
 /** ---------------------------------------------------------------
  * 		Main application
-  
+ * 
  * local storage has longer lifetime than session
  * storage.
  * ----------------------------------------------------------------
@@ -48,8 +49,43 @@ var Singleton = (function () {
 })();
 
 class Application {
+	constructor () {
+		console.log(`creating Application`)
+		var user = localStorage.getItem(USER_KEY)
+		if (user) {
+			this.user = new User(JSON.parse(user))
+		} else {
+			console.log(`no user is defined in localstorage by key ${USER_KEY}`)
+		}
+	}
+
+	/** ---------------------------------------------------------------
+	 * Starting point of application.
+	 * 
+	 * Note: must set an authenticated user before open(), otherwise 
+	 * LoginDialog will open
+	 */
+	open() {
+		const loginOptions = {title:'Login', role:'customer'}
+		if (this.user) {
+			console.log(`current user ${JSON.stringify(this.user)}`)
+			Action.isLoggedIn(this.user, (err,response)=>{
+				if (response.statusCode != 200) {
+					new LoginDialog(loginOptions).open()
+				} else {
+					const homepage = this.getHomePage(this.user)
+					console.log(`==================== opening application for ${this.user.id} home page=${homepage}`)
+					window.location = homepage
+				}
+			})
+		} else {
+			new LoginDialog(loginOptions).open()
+		}
+		
+	}
+
 	/*
-	 * A home page can be defiend for each user. If not defined, an homepage
+	 * A home page can be defined for each user. If not defined, an homepage
 	 * is decided by role of the user. 
 	 */
 	getHomePage(user) {
@@ -64,7 +100,8 @@ class Application {
 			}
 		}
 	}
-/**
+
+	/**
 	 * get an item from session storage
 	 * @param {string} key 
 	 * @returns JSON parsed object
@@ -87,61 +124,11 @@ class Application {
 		sessionStorage.setItem(key, JSON.stringify(data))
 	}
 
-	/*
-	 *
-	 */
-	constructor () {
-		if (this.user != null) return
-		var user = localStorage.getItem(USER_KEY)
-
-		if (user) {
-			this.user = new User(JSON.parse(user))
-			return 
-		} else {
-			console.log(`no user is defiend in localstorage by key ${USER_KEY}`)
-		}
-
-		const cookie = this.readCookie(COOKIE_NAME)
-		if (cookie != null) {
-			try {
-				const parsed = JSON.parse(cookie)
-				if (parsed != null) {
-					console.log(`================= setting user from cookie ${parsed}`)
-					this.user = parsed
-				}
-			} catch (e) {
-				console.warn(`invalid cookie for hiraafood ${cookie}. can not parse as a JSON`)
-			}
-		} else {
-			console.warn(`application user can not be initailized from cookies. No cookie ${COOKIE_NAME}. Must set user by other means`)
-		}
-	}
-	
-
 	setUser(u) {
 		console.log(`============== settting user ${u.id} for session ${u.session} ==================`)
 		this.user = u
 		localStorage.setItem(USER_KEY, JSON.stringify(u))
 	}
-
-
-	/**
-	 * Starting point of application.
-	 * Note: must set an authenticated user before open(), otherwise 
-	 * LoginDialog will open
-	 */
-	open() {
-		if (this.user) {
-			console.log(`current user ${JSON.stringify(this.user)}`)
-			const homepage = this.getHomePage(this.user)
-			console.log(`==================== opening application for ${this.user.id} home page=${homepage}`)
-			window.location = homepage
-		} else {
-			new LoginDialog().open()
-		}
-
-	}
-
 
 	getCurrentUser(mustExist) {
 		if (this.user) {
@@ -186,71 +173,10 @@ class Application {
 		return this.saveItem(DELIVERY_ADDRESS_KEY, addr)
 	}
 
-
-
 	logout () {
 		window.location = '/'
 		this.user = null
 	}
-
-	/*
-	/**
-	 * gets exiting DOM element with given id.
-	 * 
-	 * @param id id of a DOM element.
-	 * if does not start with '#', it would be added
-	 * @throws error if no DOM elemnt exists
-	 
-	$el(id) {
-		var domId = (id.startsWith('#') ? '' : '#') + id
-		var $el = $(domId)
-		if ($el.length == 0) {
-			throw new Error('no DOM element with id [' + domId + ']')
-		} else {
-			return $el
-		}
-	}
-	*/
-	// ---------------------------------------------------------
-	createCookie (name, value, days) {
-		console.log(`createCookie for ${days} days ${JSON.stringify(value)}`)
-		if (days) {
-			var date = new Date();
-			date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-			var expires = "; expires=" + date.toGMTString();
-		}
-		else var expires = "";
-		document.cookie = name + "=" + JSON.stringify(value) + expires + "; path=/";
-	}
-	/*
-	 * reads cookie from document. 
-	 * @return string value of a cookie. Which is a JSON string
-	 */
-	readCookie (name) {
-		var nameEQ = name + "=";
-		var ca = document.cookie.split(';');
-		console.log(`reading document cookie for ${name} cookie`)
-		for (var i = 0; i < ca.length; i++) {
-			var c = ca[i];
-			while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-			if (c.indexOf(nameEQ) == 0) {
-				var cookieString = c.substring(nameEQ.length, c.length)
-				//cookieString = decodeURIComponent(cookieString)
-				console.log(`found cookie: ${name}  = ${cookieString}`)
-				return cookieString;
-			}
-		}
-		console.warn(`readCookie: no cookie (${name}) found. Returning null`)
-		return null;
-	}
-
-	eraseCookie (name) {
-		//createCookie(name, "", -1);
-	}
-
-	
 }
-
-//alert(Singleton.getInstance() == Singleton.getInstance())
 
 export default Singleton.getInstance()

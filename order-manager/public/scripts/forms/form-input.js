@@ -18,7 +18,7 @@ class FormInput {
         console.assert('id' in props, 'can not add form input without [id] property')
         this.key        = props.id
         this.label      = props.label || props.id
-        this.validatingFunctions = []
+        this.validators = []
         this.$group = $('<div>')
         this.$group.addClass('form-group row no-gutters')
         var $col1 = $('<div>')
@@ -31,7 +31,7 @@ class FormInput {
         this.$group.append([$col1, $col2])
 
         var $label  = $('<label>')
-        $label.addClass('float-right mr-2')
+        $label.addClass('control-label float-right mr-2')
         if (props.required) $label.addClass('font-weight-bold')
     	$label.text(this.label)
         $label.attr('for', props.id)
@@ -56,7 +56,7 @@ class FormInput {
         }
         
         if (props.comment) {
-            this.$comment = $('<p>')
+            this.$comment = $('<small>')
             this.$comment.addClass('form-comment')
             this.$comment.text(props.comment)
             $col2.append(this.$comment)
@@ -74,6 +74,7 @@ class FormInput {
     element() {
         return this.$group
     }
+
     getValidator(id) {
         if (id in this.validators) {
             return this.validators[id]
@@ -81,7 +82,7 @@ class FormInput {
     }
 
     addValidator(fn) {
-        this.validatingFunctions.push(fn)
+        this.validators.push(fn)
         return this
     }
 
@@ -95,27 +96,32 @@ class FormInput {
      * an error
      */
     async validate(cb) {
-        if (this.validatingFunctions.length == 0) return
-        let validationTasks = []
+        if (this.validators.length == 0) return
         const val = this.getValue()
-        console.log(`form element [${this.getKey()}] value=${val} 
-        with ${this.validatingFunctions.length} validating functions `)
+        var validationTasks = []
+        console.log(`form element [${this.getKey()}] value=${val}`)
+        console.log(`${this.validators.length} validators:`)
+        for (var i = 0; i < this.validators.length; i++) { 
+            const fn = this.validators[i]
+            console.log(`${fn.name} ${typeof fn}`)
+            // validationTasks.push(await fn.call(null, val, (err) => {
+            //     cb.call(null, err)
+            //     if (err) {
+            //         this.markInvalid(err.message)
+            //     }
+            // })())
+            fn.call(this, val, cb)
+        }
+
         // create a function by binding current user input and a callback function
         // this callback function invlidates the input if response is not valid
-        this.validatingFunctions.forEach(v => {
-            //console.log(`calling validating function ${v.name}`)
-            v.call(null, val, (err) =>{
-                cb.call(null, err)
-                if (err) {
-                    this.markInvalid(err.message)
-                }
-            })
-            validationTasks.push(v)
+        
 
-        });
-        Promise.allSettled(validationTasks).then((values)=>{
-            //console.log(values)
-        })
+        // Promise.allSettled(this.validators).then((values)=>{
+        //     console.log(`form input ${val} validators return values `)
+
+        //     console.log(values)
+        // })
         
     }
 

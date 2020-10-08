@@ -10,7 +10,7 @@ import Alert from './forms/alert.js'
  *  where data is the response received from server converted
  *  to a JSON object
  *  If a server ajax call fails, an Alert is displayed. 
- *  The caller may decide to further process teh error
+ *  The caller may decide to further process the error
  */
 class Action {
 	/**
@@ -64,18 +64,7 @@ class Action {
 		})
 	}
 
-	static createUser(user, cb) {
-		$.ajax({
-			url: `/user/${user.id}`,
-			method: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify(user)
-		}).done(function (response) {
-			cb.call(null, response)
-		}).fail(function(err){
-			new Alert('Create User', err.responseText).open()
-		})
-	}
+	
 
 	/**
 	 * creates a new order by content of the cart.
@@ -141,6 +130,15 @@ class Action {
 		cartSize.text('0')
 		Application.$el('checkout').attr('disabled', true)
 	}
+
+	static isLoggedIn(user, cb) {
+		$.ajax({url:`/user/isLoggedIn/${user}`})
+		.done(function(response){
+			if (cb) cb.call(null, null, response) 
+		}).fail(function(err){
+			new Alert("isloggedin error", err.responseText).open()
+		})
+	}
 	
 	/**
 	 * logs in a user with id and password
@@ -158,13 +156,10 @@ class Action {
 		var basicAuth = 'Basic ' + btoa(user + ':' + pwd)
 		var header = {'Authorization' : basicAuth}
 		console.log('/user/login POST header=' + JSON.stringify(header))
-		$.ajax({
-			url: `/user/login/${user}/role/${role}`, 
-			method: 'POST',
-			headers: header,
-			withCredentials:true, // glag for browser to set the cookie
-			crossDomain:true
-		}).success(function(response) {
+		$.ajax(`/user/login/${user}/role/${role}`, 
+			{ method: 'POST',
+			headers: header}
+		).done(function(response) {
 			console.log('response /usr/login')
 			console.log(response)
 			cb.call(null, null, response) 
@@ -197,55 +192,19 @@ class Action {
         })
 	}
 
-	static isUserNameTaken(name, cb) {
+	static existsUserId(id, cb) {
 		$.ajax({
-			url: `/user/exists/?uid=${name}`
+			url: `/user/exists/${id}`
 		}).success(function(response){
 			if (response.statusCode == 200) {
-				cb.call(null, new Error(`user with name ${name} exists`))
+				cb.call(null, new Error(`user with name ${id} exists`))
 			}
 		}).fail(function(){
 			cb.call(null,null)
 		})
 	}
 
-	/*
-	 * validates user name.
-	 * If name is invalid, response status is !200.
-	 * The response message is reason for name being invald. 
-	 */
-	static validateUsername(name, cb) {
-		$.ajax({
-            headers: { 'content-type': 'application/json' },
-			url: `/validate/username/`,
-			method: 'POST',
-			contentType: 'application/json',
-            data: JSON.stringify({username:name})
-        }, function (err, res, body) {
-			if (res.statusCode == 200) {
-				cb.call(null, null, null)
-			} else {
-				cb.call(null,new Error(res.reason),null)
-			}
-        })
-	}
-
-	static validatePassword(pwd, cb) {
-		$.ajax({
-            headers: { 'content-type': 'application/json' },
-			url: `/validate/password/`,
-			method: 'POST',
-			contentType: 'application/json',
-            data: JSON.stringify({password:pwd})
-        }, function (err, res, body) {
-			if (res.statusCode == 200) {
-				cb.call(null, null, null)
-			} else {
-				cb.call(null,new Error(res.reason),null)
-			}
-        })
-	}
-
+	
 
 	static getPaymentGatewayCredentials (cb) {
 		$.ajax({url: `/invoice/payment-gateway-credentials`})

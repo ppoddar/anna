@@ -19,34 +19,31 @@
     <script>
     $().ready(function() {
         $('body').fadeIn(100)
+
+        
     })
     </script>
   </head>
 
 <body style='display:none'>
   <div id='navbar' class='navbar navbar-static-top navbar-dark'></div>
-  
-  <div id='menu' class='container-fluid mt-2'>
+
+  <div id='main' class='container-fluid'>
     <div class='row no-gutters'>
-      <div id='category-column' class='col col-4'>
-        <ul id='category-list' class="list-unstyled m-auto"></ul>
-        <hr class='solid'/>
-        <p class='text-primary font-weight-bold'>Your order</p>
-        <!-- holds the cart -->
-        <div id='cart'></div>
-        <hr class='solid'/>
-        <button id='checkout' class='btn btn-primary round'>Checkout</button>
+      <div id='item-column' class='col col-8 border border-primary'>
+        <ul id='menu' class="nav nav-tabs nav-justified" role="tablist"></ul>
+        <div id='tab-content' class='tab-content' style="overflow-y: scroll;"></div>
       </div>
-      <div class='col col-8 mh-75' style="overflow-y: scroll;">
-        <div id='category-items'></div>
+      <div id='cart-column' class='col col-4 border border-primary mx-auto'>
+        <h1 class="text-center">your order</h1>
+        <div id='cart'></div>
+        <div class='text-center'>
+        <button id='checkout' class='btn btn-primary round'>Checkout</button></div>
       </div>
     </div>
   </div>
-  </div>
 
   <div id='footer'>&copy; HiraaFood 2020-30</div>
-
-
 </div>
 
 <script type="module">
@@ -55,8 +52,10 @@
   import Navbar       from '../../scripts/widgets/navbar.js'
   import Category     from '../../scripts/widgets/category.js'
   import Cart         from '../../scripts/model/cart.js'
+  import Item         from '../../scripts/model/item.js'
 
-  
+  const CATEGORY_LABLES = {}
+
   let $navbar = new Navbar('Order')
   $('#navbar').append($navbar.render())
 
@@ -64,17 +63,16 @@
   $('#cart').data('cart', cart)
 
   Action.fetchItemCatalog((err,items)=>{
-    var categorized_items = groupBy(items, 'category')
+    var categorized_items = categorize_items(items)
     var categories = []
-    var i = 0
+    var active = true
     for (var c in categorized_items) {
-      var category = new Category(c, categorized_items[c], $('#category-items'))
-      categories.push(category)
-      $('#category-list').append(category.render())
+      var $tab     = create_tab(c, active)
+      var $tabpane = create_tab_pane(c, categorized_items[c], active)
+      $('#menu').append($tab)
+      $('#tab-content').append($tabpane)
+      active = false
     }
-
-    categories[0].renderItems()
-
   })
 
   $('#checkout').on('click', () => {
@@ -100,12 +98,62 @@
   $('#cart').trigger('click')
   $('body').css('cursor', 'default')
 
-  function groupBy(xs, key) {
-  return xs.reduce(function(rv, x) {
-    (rv[x[key]] = rv[x[key]] || []).push(x);
-    return rv;
-  }, {});
-};
+  /**
+   * Create a tab element for a category that when clicked shows all items
+   * would show all items of that category
+   */ 
+  function create_tab(category, active) {
+    var $tab = $('<li>')
+    $tab.addClass('nav-item')
+    if (active) $tab.addClass('active')
+    var $link = $('<a>')
+    $link.attr('data-toggle', 'tab')
+    $link.attr('href', '#'+category)
+    var label = category in CATEGORY_LABLES ? CATEGORY_LABELS[category] : category
+    $link.text(label)
+
+    $tab.append($link)
+    console.log(`create_tab for ${category} ${$tab.html()}`)
+
+    return $tab
+  }
+
+  function create_tab_pane(category, items, active) {
+    var $tabpane = $('<div>')
+    $tabpane.attr('id', category)
+    $tabpane.addClass('tab-pane')
+    console.log(`create_tab_pane for category ${category} with ${items.length} items`)
+    if (active) $tabpane.addClass('active')
+    for (var i = 0; i < items.length; i++) {
+      var $item = new Item(items[i]).render('list')
+      $tabpane.append($item)
+    }
+    return $tabpane
+  }
+
+  /**
+   * given an array of items, categorize them into bins.
+   * @returns a map of array of items indexed by category name 
+   */
+  function categorize_items(items) {
+    console.log(`categorize_items ${items.length} items`)
+    var result = {}
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i]
+      var categories = item.categories.split(',')
+      console.log(`item ${item.sku} ${categories.length} categories: ${item.categories}`)
+      for (var j = 0; j < categories.length; j++) {
+        var category = categories[j]
+        var list =  (category in result) ? result[category] : []
+        list.push(item)
+        result[category] = list
+      }
+    }
+    for (var c in result) {
+      console.log(`category ${c} has ${result[c].length} items`)
+    }
+    return result
+  }
 
 
   

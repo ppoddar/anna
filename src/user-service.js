@@ -28,29 +28,15 @@ class UserService extends SubApplication {
         
     }
 
-    async populate() {
-        await this.controller.populate()
-        await this.controller.enumerateUsers()
-    }
-
-    /*
-     * response status is either OK or NOT_FOUND
-     * whether user id exists
-     */
     async existsUser(req, res, next) {
         try {
             let exists = await this.controller.existsUser(req.params.uid)
-            console.log(`${this.constructor.name}  user [${req.params.uid}] exists=${exists} `)
-            res.status((exists == true) ? httpStatus.OK : httpStatus.NOT_FOUND).end()
+            res.status(exists ? httpStatus.OK : httpStatus.NOT_FOUND)
         } catch (e) {
             next(e)
         }
     }
 
-    /*
-     * response status is either OK or NOT_FOUND
-     * whether user id is currently logged in
-     */
     async isLoggedIn(req,res,next) {
         try {
             let loggedIn = await this.controller.isLoggedIn(req.params.uid)
@@ -58,13 +44,11 @@ class UserService extends SubApplication {
         } catch (e) {
             next(e)
         }
-
     }
 
     /*
-     * get entire user record (without addresses) with all possible roles,
+     * get entire user record with all possible roles,
      * home page identifed by user id
-     * 
      */
     async getUser(req, res, next) {
         try {
@@ -75,32 +59,14 @@ class UserService extends SubApplication {
         }
     }
 
-    /*
-     * get  user id of all users
-     * 
-     */
-    async getAllUsers(req, res, next) {
-        try {
-            let users = await this.controller.getAllUsers()
-            res.status(httpStatus.OK).json(users)
-        } catch (e) {
-            next(e)
-        }
-
-    }
+   
 
     /*
-     * Login a user.
+     * Login a user in a role.
      * Request carries basic authentication header.
-     * Response cookies are sent back
      */
     async login(req, res, next) {
         try {
-            if (req.params.uid == GUEST_USER.id) {
-                await this.loginAsGuest(req,res,next)
-                await this.controller.login(GUEST_USER.id, GUEST_USER.role)
-                return
-            }
             const creds = this.extractAuthrozationHeader(req, res)
             const uid = creds.username
             const pwd = creds.password
@@ -120,17 +86,6 @@ class UserService extends SubApplication {
             })
         } catch (e) {
             console.error(e)
-            next(e)
-        }
-    }
-
-      async loginAsGuest(req, res, next) {
-        try {
-            const ctx = this
-            req.session.regenerate(function () {
-                ctx.newSession(GUEST_USER, req, res)
-            })
-        } catch (e) {
             next(e)
         }
     }
@@ -164,7 +119,7 @@ class UserService extends SubApplication {
         try {
             let user  = this.postBody(req)
             try {
-                this.controller.validateUser(user)
+                this.validateUser(user)
                 if (user.addresses) { // not all  users require address
                     for (var kind in user.addresses) {
                         this.addressController.validateAddress(kind, user.addresses[kind])
@@ -181,6 +136,7 @@ class UserService extends SubApplication {
             next(e)
         }
     }
+
     /*
      * create an address for an user
      */
@@ -233,6 +189,41 @@ class UserService extends SubApplication {
         }
     }
 
+
+    async validateUser(user) {
+        if (user == undefined || Object.keys(user).length == 0) {
+            throw new Error(`user is empty or defined`)
+        }
+        if (!user.id) {
+            throw new Error(`no id for user`)
+        }
+        if (!user.roles) {
+            throw new Error(`no role for ${user.id}`)
+        }
+
+        if (user.roles.length == 0) {
+            throw new Error(`empty role for ${user.id}`)
+        }
+        for (var i = 0; i < user.roles.length; i++) {
+            const role = user.roles[i]
+            const exists = await this.controller.existsRole(role)
+            if (!exists) {
+                throw new Error(`unknown role ${role} for ${user.id}`)
+            }
+        }
+        
+    }
+ /*
+     * get  user id of all users
+     */
+    async getAllUsers(req, res, next) {
+        try {
+            let users = await this.controller.getAllUsers()
+            res.status(httpStatus.OK).json(users)
+        } catch (e) {
+            next(e)
+        }
+    }
     
     
 }

@@ -137,12 +137,8 @@ class OrderManager {
         
         this.itemService.populate()
         
-        server.listen(this.port)
+        server.listen(this.port, '0.0.0.0')
     }
-
-    
-
-    
 
     /*
      * The first middleware checks if request has a named cookie.

@@ -7,6 +7,9 @@ class Database {
     constructor(options) {
         assert(options, 'no options to create a database')
         this.url = `${options.host}:${options.port}/${options.database}`
+        // prevents abrupt connection termination 
+        options.idleTimeoutMillis = 0
+        options.connectionTimeoutMillis = 0
         this.sqls = {}
         this.pool = new Pool(options)
         this.pool.connect((error,client,release) => {

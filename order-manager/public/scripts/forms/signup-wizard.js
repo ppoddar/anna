@@ -7,9 +7,7 @@ class SignupWizard extends Wizard {
     constructor() {
         super()
         this.addIntroPage('Welcome', 
-            `we are glad that you have chosen to be a member.<br>
-            Please answer the following questions to register
-            as a Hiraafood customer`)
+            `we are glad that you have chosen to be a Hiraafood customer`)
 
         this.addPage(new UserInformationForm(this, {title:'User info'}))
         this.addPage(new UserLoginInformationForm(this, {title:'User login info'}))

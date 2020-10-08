@@ -1,3 +1,4 @@
 *.zip
 node_modules/*
 order-manager/node_modules/*
+**/.DS_Store

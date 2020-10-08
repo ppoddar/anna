@@ -194,6 +194,7 @@ class BasicDialog {
         //console.log(`creating button with ${JSON.stringify(props)}`)
 
         var $button = WidgetFactory.createButton(props.label, props.type)
+        $button.attr('id', props.id)
         this.actions.push($button)
 
         $button.attr('disabled', props.disabled || false)
@@ -202,7 +203,11 @@ class BasicDialog {
         var self = this
 
         $button.on('click', function(evt)  {
-
+            console.log($(this).attr('id') + ' clicked')
+            if ($(this).attr('id') == 'cancel') {
+                props.action.call(null)
+                return
+            }
             //console.log(`button [${$(this).text()}] is clicked`)
             if (!$(this).attr('validate')) {
                 //console.log(`form need not to be validated` )

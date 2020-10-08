@@ -20,15 +20,13 @@
   -o-background-size: cover;
   background-size: cover;
 }   
-
 </style>
+
 <script>
 $().ready(function() {
   $('body').fadeIn(100)
   $(document).ajaxSend(function(evet, xhr, settings){
-    console.log('------------------------------------------')
-    console.log(`${settings.method||'GET'} ${settings.url}`)
-    console.log('------------------------------------------')
+    console.log(`${settings.method || 'GET'} ${settings.url}`)
   })
 })
 </script>
@@ -58,13 +56,9 @@ $().ready(function() {
 
 <script type="module">
   import Application from './scripts/app.js'
-
   $('#enter').on('click', function() {
       Application.open()
   })
- 
-
-  
 </script>
 </body>
 </html>

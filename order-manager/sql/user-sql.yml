@@ -60,3 +60,7 @@ insert-user-page:
         INSERT INTO USER_HOMEPAGES
         (USER_FK, HOMEPAGE) 
         VALUES ($1, $2)
+
+find-role: 
+    single: true
+    text: SELECT * from ROLES WHERE name=$1

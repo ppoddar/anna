@@ -4,6 +4,7 @@ const ItemController = require('./item-controller')
 const fs = require('fs')
 const path = require('path')
 const logger = require('./logger')
+const { retry } = require('async')
 
 /*
  * Creates and manages menu items.
@@ -60,13 +61,21 @@ class ItemService extends SubApplication {
      * Create an item. The request body is the item 
      */
     async createItem(req,res,next) {
+        var item = this.postBody(req, false)
+        if (!('sku' in item)) {
+            return res.status(httpStatus.BAD_REQUEST).send({message:'no sku for item data'})
+        }
+        var exists = await this.controller.existsItem(item.sku)
+        if (exists) {
+            return res.status(httpStatus.NOT_MODIFIED).json({message:`item with sku ${item.sku} exists`})
+        }
         try {
-            var item = this.postBody(req, false)
             await this.controller.createItem(item)
             res.status(httpStatus.OK).json({message:`created item ${item.sku}`})
         } catch(e) {
             next(e)
         }
+    
     }
 }
 

@@ -4,8 +4,8 @@ class UserInformationForn extends BasicForm {
     constructor(dialog, options) {
         super(dialog, options)
         this.hasRequiredInput = true
-        this.addFormInput({id:'first-name',label:'First name',  required:true})
-        this.addFormInput({id:'last-name', label:'Last name'})
+        this.addFormInput({id:'user-id',label:'Id',  required:true})
+        this.addFormInput({id:'full-name',label:'Name'})
         this.addFormInput({id:'email', label:'email'})
         this.addFormInput({id:'phone', label:'phone'})
         let $note = $('<p>')

@@ -54,10 +54,7 @@ class Item {
 		$title.addClass('item-name' )
 		$title.text(this.name)
 		
-		var $category = $('<p>')
-		$category.addClass('item-category' )
-		$category.text(this.category)
-
+		
 		var $tags = $('<p>')
 		for (var i = 0; this.tags && i < this.tags.length; i++) {
 			var $tag = $('<span>')
@@ -76,17 +73,17 @@ class Item {
 		var $row = $('<div>')
 		var $col1 = $('<div>')
 		var $col2 = $('<div>')
-		$row.addClass('row')
-		$col1.addClass('col')
-		$col2.addClass('col')
+		$row.addClass('row no-gutters mt-3 border-bottom border-primary')
+		$col1.addClass('col col-4')
+		$col2.addClass('col col-8')
 		$row.append($col1, $col2)
 		if ('list' === view) {
-			$col1.append($img, $price, $rating)
-			$col2.append($title, $category, $tags,  $orderButton)
+			$col1.append($img, $price)
+			$col2.append($title, $tags,  $rating, $orderButton)
 			return $row
 		} else if ('form' === view) {
-			$col1.append($img, $price, $rating)
-			$col2.append($title, $description, $category, $tags)
+			$col1.append($img, $price)
+			$col2.append($title, $description, $tags, $rating)
 			return $row
 		} else {
 			throw new Error('unknown view [' + view + ']')

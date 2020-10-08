@@ -1,33 +1,47 @@
 import BasicForm    from "./basic-form.js";
-
+import UserSignupDialog from "./user-signup-dialog.js"
+import WidgetFactory from '../widgets/widget-factory.js'
 class LoginForm extends BasicForm {
     constructor(dialog, opts) {
         super(dialog, opts)
         this.options = Object.assign({'base':'html/customer/'}, opts)
-        this.addFormInput({id:'username', 
-            label: 'User name', 
-            type: 'text',                 
+        this.addFormInput({id:'uid', 
+            label: 'id', 
+            type: 'text', 
+            required:true,                
             validators: [this.checkEmpty.bind(this)]})
 
         const basePath = this.options['base']
-        this.createLink('forgot username?', 
-        this.getPath(basePath, 'forgot-username.html'),
+        this.createLink('forgot user id?', 
+        this.getPath(basePath, 'forgot-uid.html'),
         'text-right text-primary')
         
         this.addFormInput({id:'password', label: 'Password', 
-            type:'password', 
+            type:'password', value: '',
+            required:true,
             validators: [this.checkEmpty.bind(this)]})
         this.createLink('forgot password?', 
             this.getPath(basePath, 'forgot-password.html'),
             'text-right text-primary')
 
         let $hr = $('<hr>')
-        $hr.addClass('solid')
+
+        let $text = $('<span>')
+        $text.text('not registered? ')
+        var $signup = WidgetFactory.createButton({label:'Signup'})
+        $signup.text('signup')
+        $signup.on('click', ()=>{
+            new UserSignupDialog().open()
+        })
+
+        var $signupLink = $('<div>')
+        $signupLink.append([$text, $signup])
+        $signupLink.addClass('mx-auto')
+
+        this.addInput($signupLink)
         this.addInput($hr)
+
         
-        this.createLink('not a member? Sign up', 
-        this.getPath(basePath, 'signup.html'),
-        'text-center text-primary')
 
     }
 
@@ -41,8 +55,9 @@ class LoginForm extends BasicForm {
     createLink(text, href, style) {
         //console.log(`current page ${window.location.href}`)
         var $link = $('<p>')
-        $link.text(text)
-        $link.addClass('small')
+        var $text = $('<small>')
+        $text.text(text)
+        $link.append($text)
         $link.addClass(style)
         $link.on('click', (e)=>{
             e.stopPropagation()

@@ -4,7 +4,7 @@ COLOR_GREEN='\033[0;32m'
 COLOR_YELLOW='\033[0;33m'
 COLOR_GREY='\033[0;33m'
 
-DEBUG_LIST = process.env.NODE_DEBUG.split(',')
+DEBUG_LIST = process.env.NODE_DEBUG ? process.env.NODE_DEBUG.split(',') : []
 
 class Logger {
     info(msg) {
