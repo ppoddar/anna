@@ -189,35 +189,29 @@ class BasicDialog {
      * </ul>
      */
     createAction(props) {
-        //console.log(`creating action from `)
-        //console.log(props)
-        //console.log(`creating button with ${JSON.stringify(props)}`)
-
         var $button = WidgetFactory.createButton(props.label, props.type)
         $button.attr('id', props.id)
         this.actions.push($button)
 
         $button.attr('disabled', props.disabled || false)
         $button.data('close',    props.close    || false)
-        $button.attr('validate', props.validate || false)
+        $button.attr('validate', props.validator !== null)
         var self = this
 
         $button.on('click', function(evt)  {
-            console.log($(this).attr('id') + ' clicked')
-            if ($(this).attr('id') == 'cancel') {
+            const id = $(this).attr('id')
+            const validate = $(this).attr('validate')
+            console.log(`button [${id}] clicked`)
+            if (id == 'cancel') {
                 props.action.call(null)
                 return
             }
-            //console.log(`button [${$(this).text()}] is clicked`)
-            if (!$(this).attr('validate')) {
-                //console.log(`form need not to be validated` )
+            if (!validate) {
+                console.log(`button [${id}] need not to be validated` )
                 return
             }
             evt.stopPropagation()
             evt.preventDefault()
-            //var _this = $(this)
-            //console.log(`button [${_this.text()}]  clicked` )
-            //console.log(`form need to be validated` )
             self.form.validate((error)=> {
                 //console.log(`${this.constructor.name} has received final validation response ${JSON.stringify(message)}`)
                 if (!error) { // call action associated with the button

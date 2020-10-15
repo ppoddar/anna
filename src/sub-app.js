@@ -5,11 +5,10 @@ const logger            = require('./logger')
 
 class SubApplication {
     constructor(db, options) {
-        this.db      = db
         this.app     = express()
+        this.db      = db
         this.options = options || {}
-        logger.info(`created ${this.constructor.name} service`)
-        //if (this.validateService) this.validateService.call(null)
+        logger.info(`created ${this.constructor.name}`)
     }
 
     /*

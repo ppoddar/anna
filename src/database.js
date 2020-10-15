@@ -121,7 +121,7 @@ class Database {
             let result = await txn.query(q.text, params)
             if (q.single) {
                 if (result.rowCount == 1) {
-                    logger.debug(`single query [${q.name}] parameters [${params}] returned ${result.rows[0]}`)
+                    //logger.debug(`single query [${q.name}] parameters [${params}] returned ${result.rows[0]}`)
                     return result.rows[0]
                 } else {
                     logger.debug(`***WARN:single query [${q.name}] parameters [${params}] returned ${result.rowCount} rows. Expected a result row. Returning null`)
@@ -129,7 +129,7 @@ class Database {
                 }
             } else {
                 if (result.rowCount > 0) {
-                    logger.debug(`query [${q.name}] parameters [${params}] returned ${result.rowCount} rows.`)
+                    //logger.debug(`query [${q.name}] parameters [${params}] returned ${result.rowCount} rows.`)
                     return result.rows
                 } else {
                     logger.debug(`***WARN:query [${q.name}] parameters [${params}] returned no rows. Returning empty list`)

@@ -9,7 +9,7 @@ class LoginForm extends BasicForm {
             label: 'id', 
             type: 'text', 
             required:true,                
-            validators: [this.checkEmpty.bind(this)]})
+            validator: this.checkEmpty.bind(this)})
 
         const basePath = this.options['base']
         this.createLink('forgot user id?', 
@@ -19,7 +19,7 @@ class LoginForm extends BasicForm {
         this.addFormInput({id:'password', label: 'Password', 
             type:'password', value: '',
             required:true,
-            validators: [this.checkEmpty.bind(this)]})
+            validator: this.checkEmpty.bind(this)})
         this.createLink('forgot password?', 
             this.getPath(basePath, 'forgot-password.html'),
             'text-right text-primary')
@@ -72,10 +72,10 @@ class LoginForm extends BasicForm {
      * 
      * This function calls given callback function 
      */
-    checkEmpty(/* string */input, /* function(err) */ cb) {
-        if (input && input.trim().length > 0) {
-            cb.call(null, null)
-        } else {
+    checkEmpty(/* function(err) */ cb) {
+        const uid = this.getFormInput('uid').getValue()
+
+        if (!uid || uid.trim().length == 0) {
             cb.call(null, new Error('must not be empty'))
         }
     }

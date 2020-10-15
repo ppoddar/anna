@@ -73,6 +73,17 @@ class FirstCharacerLowerCaseRule {
     }
 }
 
+class UniqueUserIdRule {
+    async apply(uid, db) {
+        var result = await db.executeSQL('find-user', [uid])
+        console.log(`SQL:find-user result=${result}`)
+        if (result !== null) {
+            const msg = `user [${uid}] exists`
+            throw new Error(msg)
+        }
+    }
+}
+
 
 
 
@@ -80,5 +91,6 @@ module.exports = {
     CharacterGroupRule: CharacterGroupRule,
     MinimumLengthRule: MinimumLengthRule,
     FirstCharacerLowerCaseRule: FirstCharacerLowerCaseRule,
-    UnknownCharacterRule:UnknownCharacterRule
+    UnknownCharacterRule:UnknownCharacterRule,
+    UniqueUserIdRule:UniqueUserIdRule
 }

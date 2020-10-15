@@ -1,14 +1,17 @@
 const {MinimumLengthRule,UnknownCharacterRule,
     FirstCharacerLowerCaseRule,
+    UniqueUserIdRule,
     CharacterGroupRule} = require('./validation-rule.js')
 
 const SubApplication = require('./sub-app')
 const httpStatus = require('http-status-codes')
+const logger = require('./logger.js')
 
 var USER_ID_VALIDATION_RULES = [
     new MinimumLengthRule(5),
     new UnknownCharacterRule(),
-    new FirstCharacerLowerCaseRule()
+    new FirstCharacerLowerCaseRule(),
+    new UniqueUserIdRule()
 ]
 
 var PASSWORD_VALIDATION_RULES = [
@@ -30,12 +33,12 @@ class ValidationService extends SubApplication {
      */
     async validateUserId(req,res,next)  {
         const userid = this.postBody(req).userid
-        this.validate(userid, USER_ID_VALIDATION_RULES, req,res, next)
+        await this.validate(userid, USER_ID_VALIDATION_RULES, req,res, next)
     }
 
     async validatePassword(req,res,next) {
         const pwd = this.postBody(req).password
-        this.validate(pwd, PASSWORD_VALIDATION_RULES, req,res, next)
+        await this.validate(pwd, PASSWORD_VALIDATION_RULES, req,res, next)
 
     }
 
@@ -50,13 +53,14 @@ class ValidationService extends SubApplication {
      * @param {*} res 
      * @param {*} next 
      */
-    validate(token, rules, req, res, next) {
+    async validate(token, rules, req, res, next) {
         for (var i = 0; i < rules.length; i++) {
             const rule = rules[i].constructor.name
             try {
-                rules[i].apply(token)
+                //console.log(`${rule}.apply`)
+                await rules[i].apply(token,this.db)
             } catch (e) {
-                console.log(`*** caught validation Error: ${rule} [${token}]  ${e.message}`)
+                logger.warn(`*** caught validation Error: ${rule} [${token}]  ${e.message}`)
                 return res.status(httpStatus.BAD_REQUEST).json({reason:e.message})
             }
         }

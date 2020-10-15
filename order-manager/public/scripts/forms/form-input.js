@@ -18,9 +18,9 @@ class FormInput {
         console.assert('id' in props, 'can not add form input without [id] property')
         this.key        = props.id
         this.label      = props.label || props.id
-        this.validators = []
+        this.validator  = undefined
         this.$group = $('<div>')
-        this.$group.addClass('form-group row no-gutters')
+        this.$group.addClass('form-group form-group-sm row no-gutters')
         var $col1 = $('<div>')
         var $col2 = $('<div>')
         $col1.addClass('col-3')
@@ -48,11 +48,11 @@ class FormInput {
         $col2.append(this.$input)
 
         // 
-        this.$validation = $('<p>')
-        this.$validation.addClass('invalid-feedback text-danger')
-        $col2.append(this.$validation)
-        if (props.required) { // if no validators are explictly specified
-            this.addValidator(this.checkEmpty.bind(this))
+        if (props.validator) {
+            this.validator = props.validator
+            this.$validation = $('<p>')
+            this.$validation.addClass('invalid-feedback text-danger')
+            $col2.append(this.$validation)
         }
         
         if (props.comment) {
@@ -75,16 +75,7 @@ class FormInput {
         return this.$group
     }
 
-    getValidator(id) {
-        if (id in this.validators) {
-            return this.validators[id]
-        }
-    }
-
-    addValidator(fn) {
-        this.validators.push(fn)
-        return this
-    }
+    
 
     /*
      * validates this input.
@@ -95,34 +86,12 @@ class FormInput {
      * this input is marked invalid, and given callback is called with
      * an error
      */
-    async validate(cb) {
-        if (this.validators.length == 0) return
-        const val = this.getValue()
-        var validationTasks = []
-        console.log(`form element [${this.getKey()}] value=${val}`)
-        console.log(`${this.validators.length} validators:`)
-        for (var i = 0; i < this.validators.length; i++) { 
-            const fn = this.validators[i]
-            console.log(`${fn.name} ${typeof fn}`)
-            // validationTasks.push(await fn.call(null, val, (err) => {
-            //     cb.call(null, err)
-            //     if (err) {
-            //         this.markInvalid(err.message)
-            //     }
-            // })())
-            fn.call(this, val, cb)
+    validate(cb) {
+        if (this.validator) {
+            const val = this.getValue()
+            console.log(`form element [${this.getKey()}] value=${val} validator=${this.validator.name} cb`)
+            this.validator.call(this, cb)
         }
-
-        // create a function by binding current user input and a callback function
-        // this callback function invlidates the input if response is not valid
-        
-
-        // Promise.allSettled(this.validators).then((values)=>{
-        //     console.log(`form input ${val} validators return values `)
-
-        //     console.log(values)
-        // })
-        
     }
 
     /**

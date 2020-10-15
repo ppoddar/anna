@@ -97,7 +97,7 @@ import FormInput from './form-input.js'
      * Validates this form.
      * 
      * A form has zero or more input elements.
-     * Each of these inputs can have Zero or more validator functions.
+     * Each of these inputs can have a validator function.
      * A validator function could be asynchronous.
      * 
      * This method calls each input element to validate itself.
@@ -110,25 +110,27 @@ import FormInput from './form-input.js'
      *  
      */
     async validate(cb) {
-        //console.log(`validating input elements of form [${this.getTitle()}]`)
+        console.log(`validating input elements of form [${this.getTitle()}]`)
         let validations = []
         var nInvalid = 0
         for (var i = 0; i < this.inputs.length; i++) {
             const input = this.inputs[i]
             if (input instanceof FormInput) {
                 input.clearFormError() 
-                validations.push(await input.validate.bind(input, (err)=>{
-                    if (err) nInvalid++
-                })())
+                validations.push( await input.validate(function(err) {
+                    if (err) {
+                        input.markInvalid(err)
+                        nInvalid++
+                    }
+                })) 
             }
         }
-        //console.log(`form [${this.getTitle()}] validates ${validations.length} input elements`)
-         
         Promise.allSettled(validations).then((values)=>{
             //console.log('promises for each input element validations')
             //console.log(values)
-            //console.log(`number of invalid elelemnts=${nInvalid}`)
-            cb.call(null, nInvalid>0 ? new Error(`form ${this.getTitle} has ${nInvalid} invalid input elements`) : null)
+            //console.log(`number of invalid inputs=${nInvalid}`)
+            //cb.call(null, nInvalid>0 ? new Error(`form ${this.getTitle} has ${nInvalid} invalid input elements`) : null)
+            cb.call(null, nInvalid == 0 ? null : new Error())
         })
         
     }   

@@ -5,7 +5,7 @@ COLOR_YELLOW='\033[0;33m'
 COLOR_GREY='\033[0;33m'
 
 DEBUG_LIST = process.env.NODE_DEBUG ? process.env.NODE_DEBUG.split(',') : []
-
+console.log(`DEBUG_LIST:${DEBUG_LIST}`)
 class Logger {
     info(msg) {
         this.print(msg, COLOR_GREEN)
@@ -22,10 +22,12 @@ class Logger {
 
     debug(msg) {
         var caller = this.callerName()
-        //console.log(`caller ${caller}`)
-        if (DEBUG_LIST.indexOf(caller) > 0) {
-            this.print(msg, COLOR_GREY)
+        for (var i =0; i < DEBUG_LIST.length; i++) {
+            if (caller.startsWith(DEBUG_LIST[i])) {
+                this.print(msg, COLOR_GREY)
+            }
         }
+        
     }
 
     print(msg, color) {

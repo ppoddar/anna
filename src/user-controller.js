@@ -1,11 +1,8 @@
 const AddressController = require('./address-controller')
-const util = require('util')
-const debuglog = util.debuglog('user-service')
 const fs = require('fs')
 const path = require('path')
 const logger = require('./logger')
 
-const VALID_ROLES = ['customer', 'packing', 'delivery', 'kitchen', 'admin']
 /*
  * Controller operates on the database. A service validates all input and
  * presents controller with valid data.
@@ -17,87 +14,82 @@ class UserController {
         this.addressController = new AddressController(db)
     }
 
+    /**
+     * affirms if an user with givrn uid exists in database
+     * @param {*} uid 
+     * @returns true or false
+     */
     async existsUser(uid) {
         const user = await this.db.executeSQL('find-user', [uid])
         const exists = user !== null
-        if (exists) {
-            debuglog(`${this.constructor.name} user [${uid}] exists`)
-        } else {
-            debuglog(`${this.constructor.name} user ${uid} does not exist`)
-        }
         return exists
 
     }
-    async isLoggedUser(uid) {
+
+    /**
+     * Affirms if user with given id is logged in
+     * @param {} uid 
+     * @returns true or false
+     */
+    async isLoggedIn(uid) {
         const user = await this.db.executeSQL('logged-in-user', [uid])
-        return user != null
+        return user !== null
     }
 
+    /**
+     * gets user with given identifier
+     * @param {} uid 
+     * @returns user or null
+     */
     async getUser(uid) {
         let user = await this.db.executeSQL('select-user', [uid])
         return user
     }
-
+    /**
+     * gets all users
+     */
     async getAllUsers() {
         let users = await this.db.executeSQL('select-all-users', [])
         return users
     }
 
     /*
-     * 
+     * Authenticates given user at given role and passord
      * callback signature fn(err, user)
      * 
-     * TODO: handle role
      */
-    async authenticate(uid, pwd, role, callback) {
-        //debuglog(`authenticate ${uid}`)
-        let user = await this.db.executeSQL('select-user', [uid])
-        if (!user) {
-            //debuglog(`authenticate: no user found ${uid}`)
-            callabck.call(null, new Error(`no user ${uid} found`))
-        } else {
-            user = await this.db.executeSQL('select-user', [uid])
-            user.roles = user.roles.split(',')
-            let row = await this.db.executeSQL('authenticate-user', [uid, pwd])
-            if (!row) {
-                callback.call(null, new Error(`wrong-password for ${uid}`))
-            } else {
-                callback.call(null, null, user)
-            }
-        }
+    async authenticate(uid, pwd, role) {
+        return await this.db.executeSQL('authenticate-user', [uid, pwd])
     }
 
-
+    /*
+     * create a record for an user.
+     * 
+     */
     async createUser(user) {
         let txn = await this.db.begin()
-        //debuglog(`${this.constructor.name}.createUser() ${JSON.stringify(user)}`)
         var params = [user.id, user.name, user.email, user.phone, user.password]
-        await this.db.executeSQLInTxn(txn, 'insert-user', params)
-        for (var kind in user.addresses) {
-            const addr = user.addresses[kind]
-            //debuglog(`validating address ${kind} ${JSON.stringify(addr)}`)
-            this.addressController.validateAddress(kind, addr)
-            // generates address.id on insert
-            let result = await this.addressController.insertAddress(txn, user.id, addr)
-            addr.id = result.id
-        }
-        let page = user.page
+        await this.db.executeSQLInTxn(txn, 'insert-user', params)     
         for (var i = 0; i < user.roles.length; i++) {
-            if (!page) page = user.roles[0]
-            await this.db.executeSQLInTxn(txn, 'insert-user-role', [user.id, user.roles[i]])
+            const role = user.roles[i]
+            if (this.existsRole(role)) {
+                await this.db.executeSQLInTxn(txn, 'insert-user-role', [user.id, user.roles[i]])
+            } else {
+                logger.warn(`ignoring unknown role [${role}] for user [${user.id}]`)
+            }
         }
-        await this.db.executeSQLInTxn(txn, 'insert-user-page', [user.id, page])
         await this.db.commit(txn)
-        debuglog(`${this.constructor.name}.createUser(): returns user ${JSON.stringify(user)}`)
-
         return user
     }
 
     async login(uid, role) {
         await this.db.executeSQL('insert-user-login', [uid, role])
+        return
     }
-    async logout(uid, role) {
-        await this.db.executeSQL('update-user-logout', [uid, role])
+
+    async logout(uid) {
+        await this.db.executeSQL('update-user-logout', [uid])
+        return
     }
 
     async existsRole(role) {
@@ -140,12 +132,18 @@ class UserController {
     async enumerateUsers() {
         const users = await this.db.executeSQL('select-all-users', [])
         for (var i = 0; i < users.length; i++) {
-            debuglog(`${i} ${users[i].id}\t${users[i].roles}`)
+            logger.debug(`${i} ${users[i].id}\t${users[i].roles}`)
         }
-        debuglog(`found ${users.length} users`)
+        logger.debug(`found ${users.length} users`)
     }
 
-
+    async isUserInRole(uid, role) {
+        try {
+            return this.db.executeSQL('user-in-role', [uid,role]) !== null
+        }  catch (e) {
+            return false
+        }
+    }
 
 }
 

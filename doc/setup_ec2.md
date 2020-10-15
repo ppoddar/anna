@@ -29,7 +29,12 @@ connect
 docker ps
 
 ## setup Postgres
+sudo yum install -y postgresql postgresql-server postgresql-devel postgresql-contrib postgresql-docs
 
+service postgresql initdb
+sudo service postgresql start
+
+vi /var/lib/pgsql9/data/pg_hba.conf
 
 # Deploy
 

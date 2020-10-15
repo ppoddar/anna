@@ -29,7 +29,7 @@ class LoginDialog extends BasicDialog {
      * Authenticates an user with a given role
      */
     login() {
-        const uid = this.form.getFormInput('username').getValue()
+        const uid = this.form.getFormInput('uid').getValue()
         const pwd = this.form.getFormInput('password').getValue()
         const role = this.options.role || 'customer'
         Action.login(uid, pwd, role, (err, response)=>{

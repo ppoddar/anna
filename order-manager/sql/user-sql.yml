@@ -30,37 +30,50 @@ authenticate-user:
         FROM USERS 
         WHERE ID=$1 AND PASSWORD = crypt($2,  password) 
 
+ # USER_LOGINS table holds all looged in users session info       
 insert-user-login: 
-    text:
+    text: >
         INSERT INTO USER_LOGINS (ID,ROLE,LOGIN_TIME) 
         VALUES ($1, $2, NOW())
+        ON CONFLICT DO NOTHING
+
+
 update-user-logout: 
-    text:
-        UPDATE USER_LOGINS SET LOGOUT_TIME = NOW() WHERE ID=$1 AND ROLE=$2
+    text: >
+        UPDATE USER_LOGINS SET LOGOUT_TIME = NOW() 
+        WHERE ID=$1
 
-
+# get all useres who are logged in but not logged out
 logged-in-user: 
     single: true
-    text:
-        SELECT ID,ROLE,LOGIN_TIME,LOGOUT_TIME FROM LOGGED_IN_USER WHERE ID=$1 
-
+    text: > 
+        SELECT ID,ROLE,LOGIN_TIME,LOGOUT_TIME FROM USER_LOGINS 
+        WHERE ID=$1 
+        AND LOGOUT_TIME IS NULL
+# insert basic information about an user 
 insert-user:  
     text: >
         INSERT INTO USERS 
         (ID, NAME, EMAIL,  PHONE,  PASSWORD)
         VALUES ($1, $2, $3, $4,  crypt($5,  gen_salt( 'bf' ))) 
+# an user may have one or more roles
 insert-user-role:  
     text: >
         INSERT INTO USER_ROLES 
         (USER_FK, ROLE_FK)
         VALUES ($1, $2) 
-
+# each user can select a page of hi/her choice
 insert-user-page: 
     text: >
         INSERT INTO USER_HOMEPAGES
         (USER_FK, HOMEPAGE) 
         VALUES ($1, $2)
-
+# find all roles of a given user
 find-role: 
     single: true
     text: SELECT * from ROLES WHERE name=$1
+user-in-role:
+    single: true
+    text: >
+        SELECT * FROM USER_ROLES 
+        WHERE user_fk=$1 AND role_fk=$2

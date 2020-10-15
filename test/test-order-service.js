@@ -3,24 +3,11 @@ const httpStatus = require('http-status-codes');
 var assert       = require('chai').assert
 
 
-let random = new Date().getTime()
-let port = 8080
+let port = process.env.PORT || 8080
 let BASE_URL = `http://localhost:${port}`
 
-let testItem = {
-    sku: `${random}`,
-    name: `test item-${random}`,
-    description: `description item-${random}`,
-    price: 2,
-    category: 'veg',
-    tags: ['spicy']
-}
-var oid
-var testUser = { id: 'tester', auth: '', password: 'hel1o' }
-var address_kind = 'home'
-
-
-
+let items 
+let testUser = {id:'tester', password:'hel10', roles:['customer']}
 
 describe('Tests for Order Managemnent Service', function () {
     it('server info: can be obtained explicitly', function (done) {
@@ -30,15 +17,50 @@ describe('Tests for Order Managemnent Service', function () {
             done()
         })
     })
+    it('create test user', function(done){
+        request(`${BASE_URL}/user/${testUser.id}`, { json: true }, (err, res, body) => {
+            assert.isNull(err)
+            if (res.statusCode != 200) {
+                console.log(`creating user ${testUser.id} ...`)
+                options = {
+                    headers: { 'content-type': 'application/json' },
+                    url: `${BASE_URL}/user`,
+                    body: JSON.stringify(testUser)
+                }
+                request.post(options, function (err,res,body) {
+                    assert.isNull(err)
+                    done()
+                })
+            } else {
+                console.log(`user ${testUser.id} exists`)
+                done()
+            }
+        })
+    }) 
 
     it('item: catalog is not empty ', function (done) {
         request(`${BASE_URL}/item/catalog`, { json: true }, (err, res, body) => {
             assert.isNull(err)
-            assert.isArray(body, 'response body must be array')
-            assert.isTrue(body.length > 0)
+            items = body
+            assert.isArray(items, 'response body must be array')
+            assert.isTrue(items.length > 0)
             done()
         })
     })
+
+    it('user can login', function (done) {
+        var basicAuth = `Basic ${Buffer.from(`${testUser.id}:${testUser.password}`).toString('base64')}`
+        const options = {
+            headers: { Authorization: basicAuth },
+            url: `${BASE_URL}/user/login/${testUser.id}?role=customer`
+        }
+        request.post(options, function (err, res, body) {
+            assert.isNull(err)
+            assert.equal(res.statusCode, 200)
+            done()
+        })
+    })
+
 
     it('database: connetions are pooled ', function (done) {
         for (var i = 0; i < 2; i++) {
@@ -49,7 +71,9 @@ describe('Tests for Order Managemnent Service', function () {
     })
 
     it('order: order id is assigned on create', function (done) {
-        const lineitems = [{ sku: 101, units: 1 }, { sku: 102, units: 2 }]
+        const lineitems = [
+            { sku: items[0].sku, units: 1 }, 
+            { sku: items[1].sku, units: 2 }]
         options = {
             headers: { 'content-type': 'application/json' },
             url: `${BASE_URL}/order/${testUser.id}`,
@@ -85,6 +109,17 @@ describe('Tests for Order Managemnent Service', function () {
         })
     })
     */
+
+
+   it('user can logout', function (done) {
+    request.post({
+        url: `${BASE_URL}/user/logout/${testUser.id}`
+    }, function (err, res, body) {
+        assert.isNull(err)
+        assert.equal(res.statusCode, 200)
+        done()
+    })
+})
 })
 
 

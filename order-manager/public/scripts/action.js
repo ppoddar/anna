@@ -132,9 +132,9 @@ class Action {
 	}
 
 	static isLoggedIn(user, cb) {
-		$.ajax({url:`/user/isLoggedIn/${user}`})
+		$.ajax({url:`/user/loggedIn/${user}`})
 		.done(function(response){
-			if (cb) cb.call(null, null, response) 
+			cb.call(null, null, response) 
 		}).fail(function(err){
 			new Alert("isloggedin error", err.responseText).open()
 		})

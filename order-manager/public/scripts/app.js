@@ -9,7 +9,7 @@ import Action from './action.js'
  * storage.
  * ----------------------------------------------------------------
  */
-const USER_KEY = 'user'
+const USER_KEY    = 'user'
 const INVOICE_KEY = 'invoice'
 const BILLING_ADDRESS_KEY = 'billing-address'
 const DELIVERY_ADDRESS_KEY = 'delivery-address'
@@ -64,13 +64,14 @@ class Application {
 	 * 
 	 * Note: must set an authenticated user before open(), otherwise 
 	 * LoginDialog will open
+	 * ----------------------------------------------------------------
 	 */
 	open() {
 		const loginOptions = {title:'Login', role:'customer'}
 		if (this.user) {
 			console.log(`current user ${JSON.stringify(this.user)}`)
-			Action.isLoggedIn(this.user, (err,response)=>{
-				if (response.statusCode != 200) {
+			Action.isLoggedIn(this.user.id, (err,response)=>{
+				if (err) {
 					new LoginDialog(loginOptions).open()
 				} else {
 					const homepage = this.getHomePage(this.user)
