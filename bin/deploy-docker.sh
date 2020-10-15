@@ -29,9 +29,7 @@ ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << EOSSH
     git clone https://github.com/$GIT_USER/$GIT_REPO
     cd $WDIR
     docker build -t anna .
-    docker stop $(docker ps -aq)
-    docker rm $(docker ps -aq)
-    docker rmi $(docker images -q)
+    docker ps -aq | xargs docker stop
     docker run -t --network=host --rm anna 
     sleep 2 
     node src/populate_objects.js -d data/menu/
