@@ -110,7 +110,9 @@ push_docker_image
 if [[ $REMOTE -eq 1 ]]; then
 PEM=$DIR/anna.pem
 ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << EOSSH
-    docker login --username=$DOCKERHUB_USER
+    git clone https://github.com/ppoddar/anna.git
+    cd anna
+    docker build - anna .
     docker run -d -p $PORT:8080 --rm $DOCKER_IMAGE 
 EOSSH
 else
