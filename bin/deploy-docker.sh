@@ -30,9 +30,6 @@ ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << EOSSH
     cd $WDIR
     docker build -t anna .
     docker ps -aq | xargs docker stop
-    docker run -t --network=host --rm anna &
-    sleep 2 
-    node src/populate_objects.js -d data/menu/
-    exit 0
+    docker run -t --network=host --rm anna
 EOSSH
 
