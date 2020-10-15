@@ -5,4 +5,4 @@ COPY order-manager ./
 RUN npm install --no-optional
 EXPOSE 8080
 
-CMD ["node", "app.js", "-p", "8080", "-d", "config/database.yml"]
+CMD ["node", "app.js", "-p", "80", "-d", "config/database.yml"]
