@@ -1,5 +1,6 @@
 #!/bin/sh
-# 
+# --------------------------------------------------------
+# Deploy dockerized container
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 HOME_DIR=`cd $DIR/..;pwd`

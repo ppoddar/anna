@@ -1,0 +1,22 @@
+<!-- display a series of images -->
+
+<img id='slide'></img>
+
+<script>
+    var slides = ['_LuLiJc1cdo']
+        //var index = 1
+    const timeout = 1000
+    const size = '/400x200'
+    const root = 'https://source.unsplash.com/'
+    console.log('calling carousel')
+    carousel()
+
+    function carousel() {
+        //const image = root + slides[index % slides.length]
+        const image = root + 'random' + size
+        console.log('show ' + image)
+        $('#slide').attr('src', image)
+            //index = index + 1
+        setTimeout(carousel, timeout)
+    }
+</script>

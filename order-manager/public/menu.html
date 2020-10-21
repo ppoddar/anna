@@ -1,0 +1,112 @@
+<!DOCTYPE html>  
+<head>
+  <title>Hiraafood Menu</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+  <script src='./scripts/hiraafood.js'></script>
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+
+<body>
+
+<div id='main' class='container-fluid'>
+    <div class='row no-gutters'>
+        <div id='item-column' class='col col-8 border border-primary'>
+            <ul id='menu' class="nav nav-tabs nav-justified" role="tablist"></ul>
+            <div id='tab-content' class='tab-content' style="overflow-y: scroll;"></div>
+        </div>
+        <div id='cart-column' class='col col-4 border border-primary mx-auto'>
+            <h1 class="text-center">your order</h1>
+            <div id='cart'></div>
+            <div class='text-center'>
+                <button id='checkout' class='btn btn-primary round'>Checkout</button></div>
+        </div>
+    </div>
+</div>
+
+<script type='module'>
+    import Cart from './scripts/model/cart.js'
+    import Menu from './scripts/model/menu.js'
+
+    const CATEGORY_LABLES = {} 
+    var cart = new Cart() 
+    $('#cart').data('cart', cart) 
+
+    $.ajax({url:'/item/catalog'})
+    .done(function(data) {
+      var menu = new Menu(data)
+      var active = true 
+      var categories = menu.get_categories()
+      for (var i = 0; i < categories.length;  i++ ) {
+        var category = categories[i]
+        var label = category in CATEGORY_LABLES ? CATEGORY_LABELS[category] : category
+        var item_list = menu.get_items(category)
+        var $tab = create_tab(label, category, active) 
+        var $tabpane = create_tab_pane(category, item_list, active) 
+
+        $('#menu').append($tab) 
+        $('#tab-content').append($tabpane)
+        
+        active = false 
+      }
+    }) 
+/*        
+      $('#checkout').on('click', () => { 
+        // get cart from DOM 
+        const cart = $('#cart').data('cart') 
+        Action.createOrder(cart.items, (err, order) => { 
+          console.log(`callback argument is a ${order.constructor.name}`) 
+          if (order) { 
+            sessionStorage.setItem('ORDER_ID',order.id) 
+            window.location = './bill.html' } 
+          }) 
+        }) // refreshes cart area with latest state of cart $('#cart').on('click', function(){ $(this).empty() var cart = $(this).data('cart') $(this).append(cart.render()) $('#checkout').attr('disabled', cart.isEmpty())
+    }) 
+    
+    $('#cart').trigger('click') 
+    $('body').css('cursor', 'default') 
+*/
+
+/*
+ * Create a tab with a list of items. 
+ * A tab is a <li> element, with an href to that when clicked 
+ */
+    function create_tab(label, category, active) { 
+      console.log(`create_tab ${label} ${category}`)
+      var $tab = $('<li>') 
+      $tab.addClass('nav-item') 
+      if (active) $tab.addClass('active') 
+      var $link = $('<a>')
+      $link.attr('data-toggle', 'tab')
+      $link.attr('href', '#'+category)
+      $link.text(label)
+
+      $tab.append($link)
+      console.log(`create_tab for ${label} ${category} ${$tab.html()}`)
+
+      return $tab
+  }
+
+  function create_tab_pane(category, items, active) {
+    var $tabpane = $('<div>')
+    $tabpane.attr('id', category)
+    $tabpane.addClass('tab-pane')
+    console.log(`create_tab_pane for category ${category} with ${items.length} items`)
+    if (active) $tabpane.addClass('active')
+    for (var i = 0; i < items.length; i++) {
+      var $item = items[i].render('list')
+      $tabpane.append($item)
+    }
+    return $tabpane
+  }
+
+  
+</script>
+</body>
+</html>

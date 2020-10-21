@@ -1,5 +1,5 @@
-import OrderItem    from './order-item.js'
-import Amount 		from '../widgets/amount.js'
+//import OrderItem    from './order-item.js'
+//import Amount 		from '../widgets/amount.js'
 
 /**
  * cart contains a set of lineitems indexed by Item sku.
@@ -29,4 +29,4 @@ class Order {
 	}
 
 }
-export default Order
+//export default Order

@@ -1,64 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Hiraafood</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-	<link rel="stylesheet" href="./css/hiraafood.css">
-  </head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/hiraafood.css">
+</head>
 
-  <style>
-.splash { 
-  background: url('https://source.unsplash.com/_LuLiJc1cdo') no-repeat center center fixed; 
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover;
-}   
+<style>
+    .splash {
+        background: url('https://source.unsplash.com/_LuLiJc1cdo') no-repeat center center fixed;
+        -webkit-background-size: cover;
+        -moz-background-size: cover;
+        -o-background-size: cover;
+        background-size: cover;
+    }
 </style>
 
 <script>
-$().ready(function() {
-  $('body').fadeIn(100)
-  $(document).ajaxSend(function(evet, xhr, settings){
-    console.log(`${settings.method || 'GET'} ${settings.url}`)
-  })
-})
+    $().ready(function() {
+        $('body').fadeIn(100)
+        $(document).ajaxSend(function(evet, xhr, settings) {
+            console.log(`${settings.method || 'GET'} ${settings.url}`)
+        })
+    })
 </script>
 
 <body>
-	
-	
-<div class="vertical-center border splash" 
-     style='height:50vh'>
-  <div class='container-fluid'>
-  	<div class='row justify-content-center '>
-  	 	<div class='col-auto'>
-        <img style='display:block' src='/images/logo.png' class='img-fluid'>
-      </div>
+
+
+    <div class="vertical-center border splash" style='height:50vh'>
+        <div class='container-fluid'>
+            <div class='row justify-content-center '>
+                <div class='col-auto'>
+                    <img style='display:block' src='/images/logo.png' class='img-fluid'>
+                </div>
+            </div>
+
+            <h1 class='text-center text-white'>Hiraafood</h1>
+
+            <div class='row justify-content-center'>
+                <div class='col-auto'>
+                    <button id='enter' class='btn btn-info'>enter</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h1 class='text-center text-white'>Hiraafood</h1>
 
-    <div class='row justify-content-center'>
-      <div class='col-auto'>
-        <button id='enter' class='btn btn-info'>enter</button>
-      </div>
-    </div>
-  </div>
-</div>
-  
-
-<script type="module">
-  import Application from './scripts/app.js'
-  $('#enter').on('click', function() {
-      Application.open()
-  })
-</script>
+    <script type="module">
+        import Application from './scripts/app.js' 
+        $('#enter').on('click', function() { Application.open() })
+    </script>
 </body>
+
 </html>
