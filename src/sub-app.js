@@ -1,8 +1,7 @@
 const express           = require('express')
 const httpStatus        = require('http-status-codes')
-const Logger = require('./logger')
-const InputError        = require('./errors').InputError
 const Logger            = require('./logger')
+const InputError        = require('./errors').InputError
 
 class SubApplication {
     constructor(db, options) {

@@ -20,12 +20,16 @@ const UserService       = require('../src/user-service')
 const ValidationService  = require('../src/validation-service')
 const SQLRepository = require('../src/sql-repo.js')
 const AddressService = require('../src/address-service.js')
-const logger = require('../src/logger.js')
+const Logger         = require('../src/logger.js')
 const ErrorHandler      = require('../src/errors').ErrorHandler
 const morgan            = require('morgan')('tiny')
 
 let COOKIE_NAME = 'hiraafood'
 let ENTRY_PAGES  = ['/', './index.html', './login.html']
+
+const logger = new Logger()
+const content = fs.readFileSync(path.join(__dirname, 'info.json'))
+const info = JSON.parse(content)
 
 class OrderManager {
     /*
@@ -62,14 +66,6 @@ class OrderManager {
         this.userService        = new UserService(this.database, this.config['user-service'] || {})
         this.addressService     = new AddressService(this.database, this.config['address-service'] || {})
         this.validationService  = new ValidationService(this.database)
-        
-        const content = fs.readFileSync(path.join(__dirname, 'info.json'))
-        this.info = JSON.parse(content)
-
-        
-        //this.userService.populate(path.join(__dirname, './data/users'))
-        
-
         autobind(this)
     }
 
@@ -79,7 +75,7 @@ class OrderManager {
      */
     start() {
         this.app = express()
-        this.app.set('port', this.port)
+        //this.app.set('port', this.port)
         this.app.use(cors())
         this.app.use(morgan)
         this.app.use(cookieParser())
@@ -95,17 +91,18 @@ class OrderManager {
         
         this.app.use(express.json());
 
+        this.app.use('/info', (req,res) => {
+            return res.status(200).json(info)
+        })
         this.app.use('/', express.static(path.join(__dirname, this.docroot)))
-
         this.app.use('/user',     this.userService.app)
         this.app.use('/item',     this.itemService.app)
         this.app.use('/order',    this.orderService.app)
         this.app.use('/invoice',  this.paymentService.app)
         this.app.use('/validate', this.validationService.app)
 
-
          // route definitions
-         this.app.get('/info',             this.getServerInfo)
+         this.app.get('/api',  this.getServerInfo)
          this.app.use(ErrorHandler)
 
         var server 
@@ -128,15 +125,18 @@ class OrderManager {
 
         
         process.on('uncaughtException', function (e) {
-            console.log(`***ERROR:${e}`)
-            console.trace(e)
+            logger.error(`***ERROR:${e}`)
             process.exit(1)
         })
         process.on('SIGINT', function() { // 2
             logger.error('exit..................')
             process.exit(2)
-        })        
-        server.listen(this.port, '0.0.0.0')
+        })  
+
+//        server.listen(this.port, '0.0.0.0')
+
+        const HOST = '0.0.0.0'
+        this.app.listen(this.port,HOST)
     }
 
     /*
@@ -148,21 +148,21 @@ class OrderManager {
      */
     async getCurrentSession(req,res,next) {
         if (ENTRY_PAGES.includes(req.url)) {
-            console.log(`no check for entry page ${req.url}`)
+            logger.warn(`no check for entry page ${req.url}`)
             next()
             return // IMPORTANT:must call return
         }
 
         try {
-            console.log(`${req.originalUrl} parsed ${Object.keys(req.cookies).length} cookies:`)
+            logger.debug(`${req.originalUrl} parsed ${Object.keys(req.cookies).length} cookies:`)
             // req.cookies is a dictionary(name:value) are parsed by cookie-parser
             if (COOKIE_NAME in req.cookies) {
-                console.log(`!found cookie ${COOKIE_NAME} = ${req.cookies[COOKIE_NAME]}`)
+                logger.debug(`!found cookie ${COOKIE_NAME} = ${req.cookies[COOKIE_NAME]}`)
                 res.status(httpStatus.OK)
                 next()
                 return
             } else {
-                console.log(`cookie ${COOKIE_NAME} not found`)
+                logger.debug(`cookie ${COOKIE_NAME} not found`)
                 res.status(httpStatus.UNAUTHORIZED).end()
             }
         } catch (e) {

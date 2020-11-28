@@ -24,10 +24,10 @@ class Database {
         this.pool = new Pool(options)
         this.pool.connect((error,client,release) => {
             if (error) {
-                logger.error(`Failed to connect to database [${this.url}]`, error)
+                this.logger.error(`Failed to connect to database [${this.url}]`, error)
                 process.exit(1)
             } else {
-                logger.info(`connected to database [${this.url}] as user [${options.user}]`) 
+                this.logger.info(`connected to database [${this.url}] as user [${options.user}]`) 
                 types.setTypeParser(types.builtins.NUMERIC, function(val){
                     let r = parseFloat(val)
                     return r
@@ -127,14 +127,14 @@ class Database {
     async executeQuery(txn, q, params) {
         // ref: https://itnext.io/error-handling-with-async-await-in-js-26c3f20bc06a
         try {
-            logger.debug(`SQL [${q.name}] [${q.text}] parameters [${params}]`)
+            this.logger.debug(`SQL [${q.name}] [${q.text}] parameters [${params}]`)
             let result = await txn.query(q.text, params)
             if (q.single) {
                 if (result.rowCount == 1) {
                     //logger.debug(`single query [${q.name}] parameters [${params}] returned ${result.rows[0]}`)
                     return result.rows[0]
                 } else {
-                    logger.debug(`***WARN:single query [${q.name}] parameters [${params}] returned ${result.rowCount} rows. Expected a result row. Returning null`)
+                    this.logger.debug(`***WARN:single query [${q.name}] parameters [${params}] returned ${result.rowCount} rows. Expected a result row. Returning null`)
                     return null
                 }
             } else {
@@ -142,7 +142,7 @@ class Database {
                     //logger.debug(`query [${q.name}] parameters [${params}] returned ${result.rowCount} rows.`)
                     return result.rows
                 } else {
-                    logger.debug(`***WARN:query [${q.name}] parameters [${params}] returned no rows. Returning empty list`)
+                    this.logger.debug(`***WARN:query [${q.name}] parameters [${params}] returned no rows. Returning empty list`)
                     return []
                 }
             }         

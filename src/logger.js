@@ -18,7 +18,7 @@ DEBUG_LIST = process.env.DEBUG ? process.env.DEBUG.split(',') : []
 
 class Logger {
     constructor(options) {
-        this.options = options || {printStackTarce:false, color:true}
+        this.options = options || {printStackTarce:true, color:true}
     }
 
     info(msg) {
