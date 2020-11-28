@@ -39,9 +39,12 @@ function check_uncommited {
         echo 
     else 
         if [[ $REMOTE -eq 1 ]]; then
-            error 'can not deploy to production with uncommitted files'
+            # error 'can not deploy to production with uncommitted files'
             git status -s
-            exit 1
+            git add .
+            git commit -m "build and deploy"
+            git push origin master
+            # exit 1
         else
             warn 'there are uncommited files'
             UNCOMMITED=1
@@ -92,7 +95,7 @@ check_uncommited
 if [[ $REMOTE -eq 1 ]]; then
 PEM=$HOME_DIR/bin/anna.pem
 ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << EOSSH
-    docker build - --name $APP_NAME https://github.com/ppoddar/anna.git 
+    docker build --name $APP_NAME https://github.com/ppoddar/anna.git 
     docker run -d -p 80:8080 --rm --name $APP_NAME $ APP_NAME 
 EOSSH
 else
