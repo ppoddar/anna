@@ -48,11 +48,9 @@ class OrderManager {
         this.secure     = this.cli.isPresent('--secure')
         this.port       = this.cli.getOption('-p')
         this.docroot    = 'public'
-        const configFileName  = this.cli.getOption('-c', 'config/config.yml')
+        const configFileName  = this.cli.getOption('-c', '../config/config.yml')
         this.config     = this.readFile(configFileName)
-        
-        
-        const databaseConfigFileName = this.cli.getOption('-d', 'config/database.yml')
+        const databaseConfigFileName = this.cli.getOption('-d')
         this.database = new Database(this.readFile(databaseConfigFileName))
 
         const sqldir = this.cli.getOption('--sqldir', 'sql')
