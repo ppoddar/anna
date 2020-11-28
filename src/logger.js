@@ -1,23 +1,39 @@
-COLOR_RED='\033[0;31m'
-COLOR_RESET='\033[0m' 
-COLOR_GREEN='\033[0;32m'
-COLOR_YELLOW='\033[0;33m'
-COLOR_GREY='\033[0;33m'
+/*
+ * a logger logs in standard system output and error stream.
+ * 
+ */
 
-DEBUG_LIST = process.env.NODE_DEBUG ? process.env.NODE_DEBUG.split(',') : []
-console.log(`DEBUG_LIST:${DEBUG_LIST}`)
+const COLOR_RED    = '\033[0;31m'
+const COLOR_RESET  = '\033[0m' 
+const COLOR_GREEN  = '\033[0;32m'
+const COLOR_YELLOW = '\033[0;33m'
+const COLOR_GREY   = '\033[0;33m'
+
+/*
+ * debug list - environment variable DEBUG - is comma-separated caller names
+ * A debug() staement is printed only if caller name is in the list
+ */
+DEBUG_LIST = process.env.DEBUG ? process.env.DEBUG.split(',') : []
+//console.log(`DEBUG_LIST:${DEBUG_LIST}`)
+
 class Logger {
+    constructor(options) {
+        this.options = options || {printStackTarce:false, color:true}
+    }
+
     info(msg) {
         this.print(msg, COLOR_GREEN)
     }
-    error(msg,e) {
-        this.print(msg, COLOR_RED)
-        if (e) {
-            console.log(e)
-        }
-    }
+    
     warn(msg) {
         this.print(msg, COLOR_YELLOW)
+    }
+
+    error(msg,e) {
+        this.print(msg, COLOR_RED)
+        if (e && this.options.printStackTarce) {
+            console.log(e)
+        }
     }
 
     debug(msg) {
@@ -27,16 +43,22 @@ class Logger {
                 this.print(msg, COLOR_GREY)
             }
         }
-        
     }
 
+    /*
+     * print message on console. If configured to print color
+     * uses ANSI color code to color the output 
+     */
     print(msg, color) {
-        if (color) {
+        if (color && this.options.color) {
             msg = `${color} ${msg} ${COLOR_RESET}` 
         }
         console.log(msg)
     }
 
+    /*
+     * gets caller name
+     */
     callerName() {
         try {
           throw new Error();
@@ -53,4 +75,4 @@ class Logger {
       }
 }
 
-module.exports = new Logger()
+module.exports = Logger

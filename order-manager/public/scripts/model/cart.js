@@ -1,18 +1,28 @@
 import OrderItem from './order-item.js'
 /**
- * cart contains a set of lineitems indexed by Item sku.
- * it is attached to a DOM element
+ * A cart contains a set of lineitems to be ordered.
+ * Each line item is indexed by Item SKU.
+ * A cart is attached to a DOM element and acts both 
+ * as a model and a view.
  */
-class Cart {
-    constructor() {
-		this.items = {}
-	}
 
+class Cart {
+    constructor($dom) {
+		this.items = {}
+		this.$dom = $dom
+	}
+//  ===========================================================
+//     Cart as a model
+//  ===========================================================
 	isEmpty() {
 		return Object.keys(this.items).length == 0
 	}
 
-	
+	clear() {
+		this.items = {}
+		Application.saveCart(this)
+		this.render()
+	}
 	/**
 	 * adds/updates a order item.
 	 */
@@ -22,7 +32,7 @@ class Cart {
 			let existing = this.items[sku]
             //console.log(`addLineItem ${units} to update existing item-${sku}`)
 			existing.units  += units 
-			existing.comment = comment 
+			if (comment) existing.comment = comment 
         } else {
 			//console.log(`addLineItem ${units} to new item ${sku}`)
 			this.items[sku] = new OrderItem({
@@ -32,30 +42,40 @@ class Cart {
 				units:units, 
 				comment:comment})
         }
-		$('#cart').trigger('click') // updates the view
+		this.render() // updates the view
         return this
+	}
+	
+	reduceLineItem(item, units) {
+		let sku = item.sku
+        if (sku in this.items) {
+			let existing = this.items[sku]
+            //console.log(`addLineItem ${units} to update existing item-${sku}`)
+			existing.units  += units 
+		} 
+		this.render() // updates the view
     }
 
+//  ---------------------------------------------------------
+//      Cart as a view
+//  ---------------------------------------------------------	
 	/**
-	 * renders each line item
-	 * 
-	 * @return an array of row
+	 * renders each line item and appends it t DOM element
 	 */
 	render() {
-		let $main = $('<div>')
+		this.$dom.empty()
 		if (this.isEmpty()) {
 			let $label = $('<label>')
 			$label.text('empty')
 			$label.addClass('text-muted')
-			$main.append($label)
+			this.$dom.append($label)
 		} else {
 			for (var sku in this.items) {
 				var li   = this.items[sku]
 				var $p = this.createLineItem(li)
-				$main.append($p)
+				this.$dom.append($p)
 			}
 		}
-		return $main
 	}
 
 	createLineItem(li) {
@@ -100,6 +120,11 @@ class Cart {
 		return $row
 	}
 
+	/*
+	 * create a button to add/subtract or remove an ordered item
+	 * @param symbol symbol on the button
+	 * @param style button style 
+	*/
 	createButton(symbol, style) {
 		let b = $('<span>')
 		b.addClass('btn border small m-1 p-1')
@@ -107,11 +132,7 @@ class Cart {
 		b.html(symbol)
 		return b
 	}
-	clear() {
-		this.items = {}
-		Application.saveCart(this)
-		$('#cart').trigger('click')
-	}
+	
 
 }
 export default Cart

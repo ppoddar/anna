@@ -2,6 +2,7 @@ const AddressController = require('./address-controller')
 const fs = require('fs')
 const path = require('path')
 const logger = require('./logger')
+const User = require('./user')
 
 /*
  * Controller operates on the database. A service validates all input and
@@ -54,7 +55,7 @@ class UserController {
     }
 
     /*
-     * Authenticates given user at given role and passord
+     * Authenticates given user at given role and password
      * callback signature fn(err, user)
      * 
      */
@@ -82,11 +83,21 @@ class UserController {
         return user
     }
 
+    /*
+     * create a database record for a user session -- a user in a
+     * specific role, and has a finite lifetime. 
+     * Having a user session for a specif user shows that a user
+     * has logged in to the system and is active.
+     */
     async login(uid, role) {
         await this.db.executeSQL('insert-user-login', [uid, role])
         return
     }
 
+    /*
+     * Updates a user seesion by setting the end time. This effectively
+     * makes the user log out. 
+     */
     async logout(uid) {
         await this.db.executeSQL('update-user-logout', [uid])
         return
@@ -94,7 +105,6 @@ class UserController {
 
     async existsRole(role) {
         return this.db.executeSQL('find-role', [role]) != null
-
     }
 
     /*
@@ -136,6 +146,7 @@ class UserController {
         }
         logger.debug(`found ${users.length} users`)
     }
+
 
     async isUserInRole(uid, role) {
         try {

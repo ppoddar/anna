@@ -1,11 +1,21 @@
 const { Pool }   = require('pg')
 const types      = require('pg').types
 const assert     = require('assert')
-const logger     = require('./logger')
+const Logger     = require('./logger')
 
+/*
+ * A database executes queries in a transaction.
+ */
 class Database {
+    /*
+     * Create a database.
+     * @param options connection details
+     */
     constructor(options) {
-        assert(options, 'no options to create a database')
+        this.logger = new Logger()
+        if (!options) {
+            this.logger.error('no options to create a database')
+        }
         this.url = `${options.host}:${options.port}/${options.database}`
         // prevents abrupt connection termination 
         options.idleTimeoutMillis = 0

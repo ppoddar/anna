@@ -3,25 +3,37 @@
   <title>Hiraafood Menu</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <script src='./scripts/hiraafood.js'></script>
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
+  <style>
+    .active {
+      background-color : blue;
+      color: white;
+    }
+  </style>
 </head>
 
 <body>
+  <div class='row no-gutters'>
+    <img class='col-1' src='./images/logo-1024x1024.png'> 
+    <h3 class='col'>Menu</h3>
+  </div>
+
 
 <div id='main' class='container-fluid'>
     <div class='row no-gutters'>
-        <div id='item-column' class='col col-8 border border-primary'>
-            <ul id='menu' class="nav nav-tabs nav-justified" role="tablist"></ul>
-            <div id='tab-content' class='tab-content' style="overflow-y: scroll;"></div>
+        <div id='item-column' class='col-8'>
+            <ul  id='categories' class="nav nav-tabs nav-justified border border-primary" role="tablist"></ul>
+            <div id='items'      class='tab-content' style="overflow-y: scroll;"></div>
         </div>
-        <div id='cart-column' class='col col-4 border border-primary mx-auto'>
+
+
+        <div id='cart-column' class='col mx-auto'>
             <h1 class="text-center">your order</h1>
             <div id='cart'></div>
             <div class='text-center'>
@@ -35,29 +47,34 @@
     import Menu from './scripts/model/menu.js'
 
     const CATEGORY_LABLES = {} 
+    // an empty cart is created and attached to DOM
+    // the cart is 'global' to this application and
+    // accessed via DOM element 
     var cart = new Cart() 
     $('#cart').data('cart', cart) 
 
     $.ajax({url:'/item/catalog'})
     .done(function(data) {
       var menu = new Menu(data)
-      var active = true 
       var categories = menu.get_categories()
+      console.log(`menu categories ${categories}`)
       for (var i = 0; i < categories.length;  i++ ) {
         var category = categories[i]
-        var label = category in CATEGORY_LABLES ? CATEGORY_LABELS[category] : category
-        var item_list = menu.get_items(category)
-        var $tab = create_tab(label, category, active) 
-        var $tabpane = create_tab_pane(category, item_list, active) 
-
-        $('#menu').append($tab) 
-        $('#tab-content').append($tabpane)
-        
-        active = false 
+        const tab = {label:get_category_label(category), id:category}
+        var $tab = create_tab(tab) 
+        var $tabpane = create_tab_pane(tab, menu.get_items(category)) 
+        $('#categories').append($tab) 
+        $('#items').append($tabpane)
       }
+
+      show_tab(categories[0])
     }) 
-/*        
-      $('#checkout').on('click', () => { 
+
+/* 
+ * a DOM element for cart responds on click event
+ * the event is triggered when cart model is updated 
+*/        
+    $('#checkout').on('click', function(e) { 
         // get cart from DOM 
         const cart = $('#cart').data('cart') 
         Action.createOrder(cart.items, (err, order) => { 
@@ -65,45 +82,69 @@
           if (order) { 
             sessionStorage.setItem('ORDER_ID',order.id) 
             window.location = './bill.html' } 
-          }) 
-        }) // refreshes cart area with latest state of cart $('#cart').on('click', function(){ $(this).empty() var cart = $(this).data('cart') $(this).append(cart.render()) $('#checkout').attr('disabled', cart.isEmpty())
-    }) 
+        }) 
+    }) // refreshes cart area with latest state of cart $('#cart').on('click', function(){ $(this).empty() var cart = $(this).data('cart') $(this).append(cart.render()) $('#checkout').attr('disabled', cart.isEmpty())
+     
     
     $('#cart').trigger('click') 
     $('body').css('cursor', 'default') 
-*/
+
+
+    /*
+     * each category identifier is mapped to a visible label
+     */
+  function get_category_label(category) {
+    var label = category in CATEGORY_LABLES ? CATEGORY_LABELS[category] : category
+    return label
+  }
+
 
 /*
  * Create a tab with a list of items. 
- * A tab is a <li> element, with an href to that when clicked 
+ * A tab is a <li> element, the button would load tab content
+ * onto a div or simple make it visible
  */
-    function create_tab(label, category, active) { 
-      console.log(`create_tab ${label} ${category}`)
+    function create_tab(tab) { 
+      console.log(`create_tab ${tab.id}`)
       var $tab = $('<li>') 
-      $tab.addClass('nav-item') 
-      if (active) $tab.addClass('active') 
-      var $link = $('<a>')
-      $link.attr('data-toggle', 'tab')
-      $link.attr('href', '#'+category)
-      $link.text(label)
-
-      $tab.append($link)
-      console.log(`create_tab for ${label} ${category} ${$tab.html()}`)
-
+      $tab.attr('id', tab.id + '-tab')
+      $tab.addClass('nav-item')
+      $tab.text(tab.label)
+      $tab.on('click', function(e) {
+        show_tab(tab.id)
+        
+      })
+      
       return $tab
   }
-
-  function create_tab_pane(category, items, active) {
+  /*
+   * create a tab pane with list of items. 
+   */
+  function create_tab_pane(tab, items) {
     var $tabpane = $('<div>')
-    $tabpane.attr('id', category)
+    $tabpane.attr('id', tab.id)
     $tabpane.addClass('tab-pane')
-    console.log(`create_tab_pane for category ${category} with ${items.length} items`)
-    if (active) $tabpane.addClass('active')
+    $tabpane.attr('role', 'tabpanel')
+    $tabpane.attr('aria-labelledby', tab.id + '-tab')
+
+    console.log(`create_tab_pane for category ${tab.id} with ${items.length} items`)
     for (var i = 0; i < items.length; i++) {
       var $item = items[i].render('list')
       $tabpane.append($item)
     }
     return $tabpane
+  }
+
+  /*
+   * show given tab pane hiding all others
+   */
+  function show_tab(tab_id) {
+    $('.tab-pane').hide()
+    const $tabpane = $('#' + tab_id)
+    $tabpane.show()
+
+    $('.nav-item').removeClass('active')
+    $('#' + tab_id + '-tab').addClass('active')
   }
 
   

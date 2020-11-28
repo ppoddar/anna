@@ -1,37 +1,39 @@
 const fs = require('fs')
 const path = require('path')
 const yaml = require('js-yaml')
-const util       = require('util')
-const debuglog = util.debuglog('database')
-const assert     = require('assert')
-const logger     = require('./logger')
+const Logger = require('./logger')
 
+/*
+ * Respository of SQL statements read from a YAML file.
+ * Maintains a dictionary of SQL statements indexed by name.
+ */
 class SQLRepository {
+    /*
+     * Constructs a repository by reading all YAML files
+     * in the given directory 
+     */
     constructor(dir) {
-        this.sqls= {}
-        logger.info(`reading queries from ${dir}`)
+        this.sqls = {}
+        this.logger = new Logger()
+        if (!fs.existsSync(dir)) {
+            this.logger.error(`SQL repository directory [${dir}] does not exist`)
+        }
+        this.logger.info(`reading SQL repository from ${dir}`)
         this.readQueriesFromDir(dir)
     }
     /**
      * read queries from *.yml files in a directoruy.
      * @returns dictionary of queries indexed by name
      */
-    readQueriesFromDir(dir) {
-        debuglog(`readQueriesFromDir(): SQL directory [${dir}]`)
-        if (!fs.existsSync(dir)) {
-            throw Error(`SQL dir [${dir}] does not exist`)
-        }
-        let queries = {}
+    readQueriesFromDir(dir) {        
         var files = fs.readdirSync(dir, {withFileTypes:true})
-
         for (var i = 0; i < files.length; i++) {
             if (files[i].isDirectory()) continue
+            if (!files[i].name.endsWith(".yml")) continue
             var f = path.join(dir, files[i].name)
             let q = this.readQueriesFromFile(f)
-            Object.assign(queries, q)
         }
-        debuglog(`read ${Object.keys(queries).length} queries from ${files.length} files in [${dir}] directory`)
-        this.sqls = queries
+        this.logger.info(`read ${Object.keys(this.sqls).length} queries`)
     }
 
     /**
@@ -41,28 +43,35 @@ class SQLRepository {
      * @returns dictionary of queries indexed by name
      */
     readQueriesFromFile(file) {
-        let queries = {}
         try {
             //console.debug(`readQueriesFromFile(): ${file}`)
             let fileContents = fs.readFileSync(file, 'utf8');
             let data = yaml.safeLoad(fileContents);
     
             for (var name in data) {
-                let query = data[name]
-                query['name'] = name
-                //console.info(`[${name}] ${query.text.substring(0,15)} ....`)
-                queries[name] = query 
+                if (name in this.sqls) {
+                    this.logger.warn(`can not create SQL ${name} from ${file}. A SQL of same name has already been defiend`)
+                } else {
+                    let query = data[name]
+                    this.sqls['name'] = query
+                    this.logger.debug(`create [${name}] ${query.text} ....`)
+                }
             }
         } catch (e) {
             console.error(e);
         }
-        //console.debug(`read ${Object.keys(queries).length} queries from ${path.basename(file)}`)
-        return queries
     }
 
+    /*
+     * gets query.
+     * throws error if query is not defiend
+     */
     findQuery(name) {
-        assert(name in this.sqls, `unknown query [${name}]. known queries are ${Object.keys(this.sqls).sort()}`)
-        return this.sqls[name]
+        if (name in this.sqls) {
+            return this.sqls[name]
+        } else {
+            this.logger.error(`unknown query [${name}]. known queries are ${'\n'.join(Object.keys(this.sqls).sort())}`)
+        }
     }
     
 

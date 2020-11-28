@@ -1,14 +1,16 @@
 const express           = require('express')
 const httpStatus        = require('http-status-codes')
+const Logger = require('./logger')
 const InputError        = require('./errors').InputError
-const logger            = require('./logger')
+const Logger            = require('./logger')
 
 class SubApplication {
     constructor(db, options) {
         this.app     = express()
         this.db      = db
         this.options = options || {}
-        logger.info(`created ${this.constructor.name}`)
+        this.logger = new Logger(options)
+        this.logger.info(`created ${this.constructor.name}`)
     }
 
     /*

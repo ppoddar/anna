@@ -2,49 +2,51 @@
 <!-- =========================================================== -->
 <!-- main application page for Hiraafood Order Managemnet System -->
 <!-- =========================================================== -->
-<html lang="en">
+<html lang="en" style="scroll-behavior: smooth">
 <head>
     <title>Hiraafood</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-
-    <script src='./scripts/hiraafood.js'></script>
 
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <style>
         body {
-            font-family: "Lato", sans-serif
+            height: 800px;
+            font-family: "Lato", sans-serif;
         }
-        .mySlides {
-            display: none
+        
+        .vertical-center {
+            min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+            min-height: 100vh; /* These two lines are counted as one :-)       */
+
+            display: flex;
+            align-items: center;
         }
     </style>
 </head>
 
-
 <body>
-    <div class="w3-top">
-        <div id='navbar' class="w3-bar w3-black w3-card">
-        </div>
+
+<div class='w3-display-container' style='height:400px;width:400px;'>
+    <div class='w3-display-middle'>
+        <img src='./images/logo-1024x1024.png'>
     </div>
-    
-    <!-- page content is displyaed here dynamically -->
-    <div id='main' class="w3-content" style="max-width:2000px;margin-top:46px">
-        <div class="w3-container w3-content w3-center w3-padding-64" style="max-width:800px" id="menu">
+    <div class='w3-display-bottommiddle'>
+        <div class='w3-bar w3-blue'>
+            <div class='w3-bar-item'><a href='menu.html'>Menu</div>
+            <div class='w3-bar-item' style='float:right'><a href='#'>Contact</div>
+
         </div>
     </div>
 
-
-    <script type="module">
-        console.log(sections)
-        build_navbar($('#navbar'), sections)
-    </script>
+</div>
 
 
 </body>
+
+
+
 
 </html>
