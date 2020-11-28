@@ -95,13 +95,14 @@ check_uncommited
 if [[ $REMOTE -eq 1 ]]; then
 PEM=$HOME_DIR/bin/anna.pem
 ssh -tt  -i $PEM $PROD_USER@$REMOTE_HOST << EOSSH
-    docker build --name $APP_NAME https://github.com/ppoddar/anna.git 
-    docker run -d -p 80:8080 --rm --name $APP_NAME $ APP_NAME 
+docker build --rm --tag hiraafood https://github.com/ppoddar/anna.git
+
+    docker run -d -p80:8080 --rm --name hiraafood hiraafood 
 EOSSH
 else
     info 'running dockerized application. access it at port http://127.0.0.1:80/'
     docker build -t $APP_NAME .
-    docker run -p80:8080 --rm --name $APP_NAME $APP_NAME
+    docker run -p80:8080 --rm --name $APP_NAME --net=host $APP_NAME
 fi
 
 
